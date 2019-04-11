@@ -1,0 +1,16 @@
+astroid==2.2.5
+colorama==0.4.1
+Django==2.1.7
+isort==4.3.16
+lazy-object-proxy==1.3.1
+mccabe==0.6.1
+mysql-connector-python==8.0.15
+pylint==2.3.1
+PyQt5==5.12.1
+PyQt5-sip==4.19.15
+pytz==2018.9
+sip==4.19.8
+six==1.12.0
+typed-ast==1.3.1
+virtualenv==16.4.3
+wrapt==1.11.1
