@@ -28,7 +28,7 @@ class PaginatedAPIMixin(object):
     @staticmethod
     def to_col_dict(query):
         data = {
-            'items':[item.to_dict() for item in query ]
+            'items': [item.to_dict() for item in query ]
         }
         return data
 
@@ -58,14 +58,37 @@ class User(PaginatedAPIMixin, db.Model):
                 setattr(self, field, data[field])
 
 
-class Task(PaginatedAPIMixin, db.Model):
-    __tablename__ = 'tasks'
+class DailyTask(PaginatedAPIMixin, db.Model):
+    __tablename__ = 'dailytasks'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    day = db.Column(db.Integer) #为0代表定期
     hour = db.Column(db.Integer)
     minute = db.Column(db.Integer)
+    index = db.Column(db.Integer, nullable=False)
 
+    def __repr__(self):
+        return '<Task {}'.format(self.name)
+
+    def to_dict(self):
+        data = {
+            'id': self.id,
+            'name': self.name,
+            'hour': self.hour,
+            'minute': self.minute
+        }
+        return data
+
+    def from_dict(self, data):
+        for field in ['name', 'hour', 'minute']:
+            if field in data:
+                setattr(self, field, data[field])
+
+
+class MonthlyTask(PaginatedAPIMixin, db.Model):
+    __tablename__ = 'monthlytasks'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    day = db.Column(db.Integer)
 
     def __repr__(self):
         return '<Task {}'.format(self.name)
@@ -75,13 +98,10 @@ class Task(PaginatedAPIMixin, db.Model):
             'id': self.id,
             'name': self.name,
             'day': self.day,
-            'hour': self.hour,
-            'minute':self.minute
         }
         return data
 
     def from_dict(self, data):
-        for field in ['name', 'day', 'hour','minute']:
+        for field in ['name', 'day']:
             if field in data:
                 setattr(self, field, data[field])
-

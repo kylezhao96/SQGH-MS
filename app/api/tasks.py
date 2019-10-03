@@ -1,5 +1,5 @@
 from app.api import bp
-from app.models import User, Task
+from app.models import User, DailyTask, MonthlyTask
 from flask import jsonify, request, url_for
 from app.api.errors import bad_request
 from app import db
@@ -8,12 +8,22 @@ from sqlalchemy import and_,or_
 import pyperclip
 
 
-@bp.route('/tasks/day=<int:day>', methods=['GET'])
+@bp.route('/dailytasks', methods=['GET'])
 @cross_origin()
-def get_tasksofday(day):
-    tasks = Task.query.filter(or_(Task.day == day, Task.day == 0)).order_by(Task.hour + Task.minute/60)
+def get_dailytasks():
+    tasks = DailyTask.query.filter().order_by(DailyTask.index)
     # data = Task.to_collection_dict(tasks, 1, 20, '/task')
-    data = Task.to_col_dict(tasks)
+    data = DailyTask.to_col_dict(tasks)
+    print(data)
+    return jsonify(data)
+
+
+@bp.route('/monthlytasks', methods=['GET'])
+@cross_origin()
+def get_monthlytasks():
+    tasks = MonthlyTask.query.filter()
+    # data = Task.to_collection_dict(tasks, 1, 20, '/task')
+    data = DailyTask.to_col_dict(tasks)
     print(data)
     return jsonify(data)
 
@@ -27,10 +37,10 @@ def create_task():
     data['hour'] = int(data['time'].split(':')[0])
     data['minute']  = int(data['time'].split(':')[1])
     print(data)
-    if Task.query.filter_by(name=data['name']).first():
-        if Task.query.filter_by(name=data['name']).first().hour==data['hour'] and Task.query.filter_by(name=data['name']).first().minute==data['minute']:
+    if DailyTask.query.filter_by(name=data['name']).first():
+        if DailyTask.query.filter_by(name=data['name']).first().hour==data['hour'] and DailyTask.query.filter_by(name=data['name']).first().minute==data['minute']:
             return bad_request('任务已存在！')
-    task = Task()
+    task = DailyTask()
     task.from_dict(data)
     db.session.add(task)
     db.session.commit()
