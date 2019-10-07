@@ -6,14 +6,15 @@ from app import db
 # from flask_cors import cross_origin
 from sqlalchemy import and_,or_
 import pandas as pd
-import xlrd
+# import xlrd
 import datetime
+from app.tool.tool import realRound
 
 
 @bp.route('/importcdf', methods=['GET'])
 def import_cdf():
-    excel_path='D:\\MyRepositories\\files\\2019年石桥风电场日报表.xlsx'
-    cdf = pd.read_excel('D:\\MyRepositories\\files\\2019年石桥风电场日报表.xlsx', sheet_name='日报计算表',usecols=range(76),skiprows=range(3),header=None)
+    excel_path='C:\\Users\\Kyle\\Desktop\\2019年石桥风电场日报表.xlsx'
+    cdf = pd.read_excel(excel_path, sheet_name='日报计算表', usecols=range(76), skiprows=range(3), header=None)
     response = []
     for x in range(366):
         data = {}
