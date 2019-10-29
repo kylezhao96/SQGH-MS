@@ -232,6 +232,8 @@ class WTMaintain(PaginatedAPIMixin, db.Model):
     task = db.Column(db.String(100))  # 任务
     wt_id = db.Column(db.Integer, db.ForeignKey('wts.id'))
     lost_power = db.Column(db.Float)
+    time = db.Column(db.Float)
+    is_end = db.Column(db.Integer, default=0) # 是否终结，默认为0/false
 
     def from_dict(self, data):  # unfinished
         for field in ['manager_id', 'allow_time', 'stop_time', 'start_time', 'end_time', 'members', 'lost_power']:

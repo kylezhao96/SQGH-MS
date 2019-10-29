@@ -42,7 +42,23 @@ def create_wtm():
     db.session.commit()
     return jsonify("ok")
 
+
+@bp.route('/getwtms', methods=['GET'])
 def get_wtms():
+    unstoped_wtm = WTMaintain.query.filter_by(is_end=0)
+    data = []
+    for item in unstoped_wtm:
+        x = {
+            'id': item.wt_id,
+            'manager': User.query.filter_by(id=item.manager_id).first().name,
+            'task': item.task,
+            'members': item.members,
+            'allow_time': item.allow_time
+        }
+        data.append(x)
+    print(data)
+    return jsonify(data)
+
 
 @bp.route('/getwttasks', methods=['GET'])
 def get_wt_tasks():
