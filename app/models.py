@@ -1,5 +1,6 @@
 from app import db
-from flask import url_for
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship  # 创建关系
 
 
 class PaginatedAPIMixin(object):
@@ -37,8 +38,9 @@ class User(PaginatedAPIMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20), unique=True, nullable=False)
-    oa_account = db.Column(db.Integer, unique=True, nullable=False)
+    oa_account = db.Column(db.String(20), unique=True, nullable=False)
     oa_password = db.Column(db.String(100), nullable=False)
+    wtm = db.relationship('WTMaintain', backref='users', lazy='dynamic')
 
     def __repr__(self):
         return '<User {}>'.format(self.name)
@@ -108,6 +110,14 @@ class MonthlyTask(PaginatedAPIMixin, db.Model):
             if field in data:
                 setattr(self, field, data[field])
 
+# 风机表
+class WT(PaginatedAPIMixin, db.Model):
+    __tablename__ = 'wts'
+    id = db.Column(db.Integer, primary_key=True)
+    line = db.Column(db.Integer)
+    dcode = db.Column(db.Integer)
+    type = db.Column(db.String(100), default='En121-2.5')
+    wtm = db.relationship('WTMaintain', backref='wts', lazy='dynamic')
 
 # 日报计算表
 class CalDailyForm(PaginatedAPIMixin, db.Model):
@@ -208,3 +218,22 @@ class CalDailyForm(PaginatedAPIMixin, db.Model):
                 setattr(self, field, data[field])
 
 
+# 风机维护记录
+class WTMaintain(PaginatedAPIMixin, db.Model):
+    __tablename__ = 'wtm'
+    id = db.Column(db.Integer, primary_key=True)
+    allow_time = db.Column(db.DateTime)  # 许可时间
+    stop_time = db.Column(db.DateTime)  # 停机时间
+    start_time = db.Column(db.DateTime)  # 启机时间
+    end_time = db.Column(db.DateTime)  # 终结时间
+    manager_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    members = db.Column(db.String(100))
+    type = db.Column(db.String(100))  # 维护类型
+    task = db.Column(db.String(100))  # 任务
+    wt_id = db.Column(db.Integer, db.ForeignKey('wts.id'))
+    lost_power = db.Column(db.Float)
+
+    def from_dict(self, data):  # unfinished
+        for field in ['manager_id', 'allow_time', 'stop_time', 'start_time', 'end_time', 'members', 'lost_power']:
+            if field in data:
+                setattr(self, field, data[field])

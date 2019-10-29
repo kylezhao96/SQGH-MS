@@ -20,7 +20,6 @@ def get_dailytasks():
 @bp.route('/monthlytasks', methods=['GET'])
 def get_monthlytasks():
     tasks = MonthlyTask.query.filter()
-    # data = Task.to_collection_dict(tasks, 1, 20, '/task')
     data = MonthlyTask.to_col_dict(tasks)
     print(data)
     return jsonify(data)

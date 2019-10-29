@@ -250,7 +250,7 @@ def fill_caldailyform():
     worksheet.cell(rowNum, 21, data['fka111'])  # 111正向
     workbook.save(EXCEL_PATH)
     save_excel(EXCEL_PATH)
-    add_cdf()
+    add_cdf()   # 保存至数据库
     response = jsonify(data)
     response.status_code = 201
     return response
