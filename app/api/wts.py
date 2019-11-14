@@ -4,7 +4,7 @@ from flask import jsonify, request, url_for
 from app.api.errors import bad_request
 from app import db
 from sqlalchemy import and_,or_
-import re
+import re, datetime
 
 
 @bp.route('/getwts', methods=['GET'])
@@ -33,11 +33,24 @@ def create_wtm():
     data = request.get_json() or {}
     print(data)
     wtm = WTMaintain()
-    wtm.manager_id = User.query.filter_by(name=data['manager']).first().id
+    if not User.query.filter_by(name=data['manager']).first():
+        manager = User()
+        manager.name = data['manager']
+        db.session.add(manager)
+        db.session.commit()
+        wtm.manager_id = manager.name
+    else:
+        wtm.manager_id = User.query.filter_by(name=data['manager']).first().id
     wt_regex = re.compile(r'A(\d){,2}')
     wtm.wt_id = WT.query.filter_by(id=wt_regex.search(data['wt'][1]).group(1)).first().id
     wtm.task = data['task']
     wtm.type = data['type']
+    wtm.allow_time = datetime.datetime.fromtimestamp(data['allow_time']/1000)
+    members = ''
+    for item in data['members']:
+        members = members+item+','
+    members = members.rstrip(',')
+    wtm.members = members
     db.session.add(wtm)
     db.session.commit()
     return jsonify("ok")
@@ -49,11 +62,12 @@ def get_wtms():
     data = []
     for item in unstoped_wtm:
         x = {
-            'id': item.wt_id,
+            'id':item.id,
+            'wt_id': item.wt_id,
             'manager': User.query.filter_by(id=item.manager_id).first().name,
             'task': item.task,
             'members': item.members,
-            'allow_time': item.allow_time
+            'allow_time': item.allow_time.strftime('%Y/%m/%d %H:%m')
         }
         data.append(x)
     print(data)
@@ -73,3 +87,12 @@ def get_wt_tasks():
         )
     print(re_tasks)
     return jsonify(re_tasks)
+
+
+@bp.route('/deletewtm', methods=['POST'])
+def delete_wtm():
+    data = request.get_json() or {}
+    wtm = WTMaintain.query.filter_by(id=int(data)).first()
+    db.session.delete(wtm)
+    db.session.commit()
+    return jsonify('ok')

@@ -38,8 +38,8 @@ class User(PaginatedAPIMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20), unique=True, nullable=False)
-    oa_account = db.Column(db.String(20), unique=True, nullable=False)
-    oa_password = db.Column(db.String(100), nullable=False)
+    oa_account = db.Column(db.String(20), unique=True)
+    oa_password = db.Column(db.String(100))
     wtm = db.relationship('WTMaintain', backref='users', lazy='dynamic')
 
     def __repr__(self):
