@@ -1,10 +1,11 @@
+import datetime
+import re
+
+from flask import jsonify, request
+
+from app import db
 from app.api import bp
 from app.models import WT, WTMaintain, User
-from flask import jsonify, request, url_for
-from app.api.errors import bad_request
-from app import db
-from sqlalchemy import and_,or_
-import re, datetime
 
 
 @bp.route('/getwts', methods=['GET'])
@@ -38,10 +39,10 @@ def create_wtm():
         manager.name = data['manager']
         db.session.add(manager)
         db.session.commit()
-        wtm.manager_id = manager.name
+        wtm.manager_id = manager.id
     else:
         wtm.manager_id = User.query.filter_by(name=data['manager']).first().id
-    wt_regex = re.compile(r'A(\d){,2}')
+    wt_regex = re.compile(r'(\d)+')
     wtm.wt_id = WT.query.filter_by(id=wt_regex.search(data['wt'][1]).group(1)).first().id
     wtm.task = data['task']
     wtm.type = data['type']
