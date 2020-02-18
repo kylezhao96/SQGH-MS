@@ -1,6 +1,19 @@
 from app import db
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship  # 创建关系
+from sqlalchemy import Column
+
+# 中间表 工作班成员与工作票号 多对多关系
+member_gzp = db.Table("member_gzp",
+                      db.Column("member_id", db.Integer, db.ForeignKey("user.id")),
+                      db.Column("gzp_id", db.Integer, db.ForeignKey("gzp.id"))
+                      )
+
+# 中间表 一台风机对应多张工作票，一张工作票也可以有多台风机
+wt_gzp = db.Table("wt_gzp",
+                  db.Column("wt_id", db.Integer, db.ForeignKey("wt.id")),
+                  db.Column("gzp_id", db.Integer, db.ForeignKey("gzp.id"))
+                  )
 
 
 class PaginatedAPIMixin(object):
@@ -35,12 +48,25 @@ class PaginatedAPIMixin(object):
 
 
 class User(PaginatedAPIMixin, db.Model):
-    __tablename__ = 'users'
+    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20), unique=True, nullable=False)
     oa_account = db.Column(db.String(20), unique=True)
     oa_password = db.Column(db.String(100))
-    wtm = db.relationship('WTMaintain', backref='users', lazy='dynamic')
+
+    # signed_gzp_id = db.Column(db.Integer, db.ForeignKey("gzp.id"))  # 签发的工作票 外键
+    # signed_gzp = db.relationship('Gzp', foreign_keys=[signed_gzp_id])  # 签发的工作票
+    #
+    # managed_gzp_id = db.Column(db.Integer, db.ForeignKey("gzp.id"))  # 担任工作负责人的工作票 外键
+    # managed_gzp = db.relationship('Gzp', foreign_keys=[managed_gzp_id])  # 担任负责人的工作票
+    #
+    # allowed1_gzp_id = db.Column(db.Integer, db.ForeignKey("gzp.id"))  # 值班许可的工作票
+    # allowed1_gzp = db.relationship('Gzp', foreign_keys=[allowed1_gzp_id])
+    #
+    # allowed2_gzp_id = db.Column(db.Integer, db.ForeignKey("gzp.id"))  # 现场许可的工作票
+    # allowed2_gzp = db.relationship('Gzp', foreign_keys=[allowed2_gzp_id])  # 现场许可的工作票
+
+    # exec_gzps = db.relationship("Gzp", secondary=member_gzp, backref=db.backref('members', lazy='dynamic'), lazy="dynamic")  # 作为工作班成员执行的工作票
 
     def __repr__(self):
         return '<User {}>'.format(self.name)
@@ -61,7 +87,7 @@ class User(PaginatedAPIMixin, db.Model):
 
 
 class DailyTask(PaginatedAPIMixin, db.Model):
-    __tablename__ = 'dailytasks'
+    __tablename__ = 'dailytask'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     hour = db.Column(db.Integer)
@@ -89,7 +115,7 @@ class DailyTask(PaginatedAPIMixin, db.Model):
 
 
 class MonthlyTask(PaginatedAPIMixin, db.Model):
-    __tablename__ = 'monthlytasks'
+    __tablename__ = 'monthlytask'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     day = db.Column(db.Integer)
@@ -110,14 +136,16 @@ class MonthlyTask(PaginatedAPIMixin, db.Model):
             if field in data:
                 setattr(self, field, data[field])
 
+
 # 风机表
 class WT(PaginatedAPIMixin, db.Model):
-    __tablename__ = 'wts'
+    __tablename__ = 'wt'
     id = db.Column(db.Integer, primary_key=True)
     line = db.Column(db.Integer)
     dcode = db.Column(db.Integer)
     type = db.Column(db.String(100), default='En121-2.5')
-    wtm = db.relationship('WTMaintain', backref='wts', lazy='dynamic')
+    wtm = db.relationship('WTMaintain', backref="wt", lazy='dynamic')  # 一
+
 
 # 日报计算表
 class CalDailyForm(PaginatedAPIMixin, db.Model):
@@ -135,13 +163,13 @@ class CalDailyForm(PaginatedAPIMixin, db.Model):
     bka323 = db.Column(db.Float)
     fka31b = db.Column(db.Float)
     fka21b = db.Column(db.Float)
-    fka311 = db.Column(db.Float)
+    fka311 = db.Column(db.Float, default=0)
     bka311 = db.Column(db.Float)
-    fkr311 = db.Column(db.Float)
+    fkr311 = db.Column(db.Float, default=0)
     bkr311 = db.Column(db.Float)
-    fka321 = db.Column(db.Float)
+    fka321 = db.Column(db.Float, default=0)
     bka321 = db.Column(db.Float)
-    fkr321 = db.Column(db.Float)
+    fkr321 = db.Column(db.Float, default=0)
     bkr321 = db.Column(db.Float)
     bka111 = db.Column(db.Float)
     fka111 = db.Column(db.Float)
@@ -151,7 +179,7 @@ class CalDailyForm(PaginatedAPIMixin, db.Model):
     doffp1 = db.Column(db.Integer)
     dcp1 = db.Column(db.Integer)
     dcl1 = db.Column(db.Float)
-    dgp2= db.Column(db.Integer)
+    dgp2 = db.Column(db.Integer)
     donp2 = db.Column(db.Integer)
     doffp2 = db.Column(db.Integer)
     dcp2 = db.Column(db.Integer)
@@ -163,7 +191,7 @@ class CalDailyForm(PaginatedAPIMixin, db.Model):
     dcl = db.Column(db.Float)
     doffp31b = db.Column(db.Integer)
     doffp21b = db.Column(db.Integer)
-    #年的
+    # 年的
     agp1 = db.Column(db.Integer)
     aonp1 = db.Column(db.Integer)
     aoffp1 = db.Column(db.Integer)
@@ -179,7 +207,7 @@ class CalDailyForm(PaginatedAPIMixin, db.Model):
     aoffp = db.Column(db.Integer)
     acp = db.Column(db.Integer)
     acl = db.Column(db.Float)
-    #月的
+    # 月的
     mgp1 = db.Column(db.Integer)
     monp1 = db.Column(db.Integer)
     moffp1 = db.Column(db.Integer)
@@ -195,11 +223,34 @@ class CalDailyForm(PaginatedAPIMixin, db.Model):
     moffp = db.Column(db.Integer)
     mcp = db.Column(db.Integer)
     mcl = db.Column(db.Float)
-    #svg ja有功功率 jr无功功率
+    # svg ja有功功率 jr无功功率
     offja311 = db.Column(db.Integer)
     offjr311 = db.Column(db.Integer)
     offja321 = db.Column(db.Integer)
     offjr321 = db.Column(db.Integer)
+    # s 风速
+    dmaxs = db.Column(db.Float)
+    dmins = db.Column(db.Float)
+    davgs = db.Column(db.Float)
+    dmaxs1 = db.Column(db.Float)
+    dmins1 = db.Column(db.Float)
+    davgs1 = db.Column(db.Float)
+    dmaxs2 = db.Column(db.Float)
+    dmins2 = db.Column(db.Float)
+    davgs2 = db.Column(db.Float)
+    # lp 限电
+    dlp1 = db.Column(db.Float, default=0)  # 一期日限电量
+    dlp2 = db.Column(db.Float, default=0)  # 二期日限电量
+    dlp = db.Column(db.Float, default=0)  # 总日限电量
+    mlp1 = db.Column(db.Float, default=0)  # 一期月限电量
+    mlp2 = db.Column(db.Float, default=0)  # 二期月限电量
+    mlp = db.Column(db.Float, default=0)  # 总月限电量
+    alp1 = db.Column(db.Float, default=0)  # 一期年限电量
+    alp2 = db.Column(db.Float, default=0)  # 二期年限电量
+    alp = db.Column(db.Float, default=0)  # 总年限电量
+    # l 负荷
+    dmaxl = db.Column(db.Float)  # 日最大负荷
+    dminl = db.Column(db.Float)  # 日最小负荷
 
     def __repr__(self):
         return '<CalDailyForm {}'.format(self.name)
@@ -213,7 +264,7 @@ class CalDailyForm(PaginatedAPIMixin, db.Model):
         return data
 
     def from_dict(self, data):
-        for field in ['date', 'fka312', 'bka312', 'fka313', 'bka313', 'fka322', 'bka322', 'fka323', 'bka323', 'fka31b', 'fka21b', 'fka311', 'fkr311', 'bka311', 'bkr311', 'fka321', 'fkr321', 'bka321', 'bkr321', 'bka111', 'fka111', 'dgp1', 'donp1', 'doffp1', 'dcp1', 'dcl1', 'dgp2', 'donp2', 'doffp2', 'dcp2', 'dcl2', 'dgp', 'donp', 'doffp', 'dcp', 'dcl', 'doffp31b', 'doffp21b', 'agp1', 'aonp1', 'aoffp1', 'acp1', 'acl1', 'agp2', 'aonp2', 'aoffp2', 'acp2', 'acl2', 'agp', 'aonp', 'aoffp', 'acp', 'acl', 'mgp1', 'monp1', 'moffp1', 'mcp1', 'mcl1', 'mgp2', 'monp2', 'moffp2', 'mcp2', 'mcl2', 'mgp', 'monp', 'moffp', 'mcp', 'mcl', 'offja311', 'offjr311', 'offja321', 'offjr321']:
+        for field in dir(self):
             if field in data:
                 setattr(self, field, data[field])
 
@@ -222,20 +273,69 @@ class CalDailyForm(PaginatedAPIMixin, db.Model):
 class WTMaintain(PaginatedAPIMixin, db.Model):
     __tablename__ = 'wtm'
     id = db.Column(db.Integer, primary_key=True)
-    allow_time = db.Column(db.DateTime)  # 许可时间
+    type = db.Column(db.String(100))  # 维护类型
+    wt_id = db.Column(db.Integer, db.ForeignKey('wt.id'))
+    task = db.Column(db.String(100))  # 任务
     stop_time = db.Column(db.DateTime)  # 停机时间
     start_time = db.Column(db.DateTime)  # 启机时间
-    end_time = db.Column(db.DateTime)  # 终结时间
-    manager_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-    members = db.Column(db.String(100))
-    type = db.Column(db.String(100))  # 维护类型
-    task = db.Column(db.String(100))  # 任务
-    wt_id = db.Column(db.Integer, db.ForeignKey('wts.id'))
-    lost_power = db.Column(db.Float)
-    time = db.Column(db.Float)
-    is_end = db.Column(db.Integer, default=0) # 是否终结，默认为0/false
+    lost_power = db.Column(db.Float)  # 损失电量
+    time = db.Column(db.Float)  # 停机时间
+    is_end = db.Column(db.Integer, default=0)  # 是否终结，默认为0/false
+    gzp_id = db.Column(db.String(50), db.ForeignKey('gzp.gzp_id', ondelete="CASCADE"))  # 定义关系工作票与维护单
 
-    def from_dict(self, data):  # unfinished
-        for field in ['manager_id', 'allow_time', 'stop_time', 'start_time', 'end_time', 'members', 'lost_power']:
-            if field in data:
-                setattr(self, field, data[field])
+
+# 工作票记录
+class Gzp(PaginatedAPIMixin, db.Model):
+    __tablename__ = 'gzp'
+    id = db.Column(db.Integer, primary_key=True)
+    # 定义维护单与工作票 一对多关系 外键
+    wtms = db.relationship("WTMaintain", backref="gzp", lazy='dynamic', cascade='all, delete-orphan', passive_deletes = True)
+    gzp_id = db.Column(db.String(50), unique=True)  # 工作票票号
+    firm = db.Column(db.String(100))  # 单位
+    pstart_time = db.Column(db.DateTime)  # 计划开始时间
+    pstop_time = db.Column(db.DateTime)  # 计划结束时间
+    error_code = db.Column(db.String(100))  # 故障代码
+    error_content = db.Column(db.String(100))  # 故障内容
+    # members = db.relationship("User", secondary=member_gzp, backref="exec_gzps", lazy="dynamic")  # 工作班成员
+    task = db.Column(db.String(100))  # 任务
+    postion = db.Column(db.String(100), server_default='整机')  # 工作位置
+    sign_time = db.Column(db.DateTime)  # 签发时间
+    allow1_time = db.Column(db.DateTime)  # 值班许可时间
+    end1_time = db.Column(db.DateTime)  # 值班许可终结时间
+    allow2_time = db.Column(db.DateTime)  # 现场许可时间
+    end2_time = db.Column(db.DateTime)  # 现场许可终结时间
+
+    sign_person_id = db.Column(db.Integer, db.ForeignKey("user.id"))  # 签发的工作票 外键
+    sign_person = db.relationship('User', foreign_keys=[sign_person_id])  # 签发的工作票
+
+    manage_person_id = db.Column(db.Integer, db.ForeignKey("user.id"))  # 担任工作负责人的工作票 外键
+    manage_person = db.relationship('User', foreign_keys=[manage_person_id])  # 担任负责人的工作票
+
+    allow1_person_id = db.Column(db.Integer, db.ForeignKey("user.id"))  # 值班许可的工作票
+    allow1_person = db.relationship('User', foreign_keys=[allow1_person_id])
+
+    allow2_person_id = db.Column(db.Integer, db.ForeignKey("user.id"))  # 现场许可的工作票
+    allow2_person = db.relationship('User', foreign_keys=[allow2_person_id])  # 现场许可的工作票
+
+    members = db.relationship("User", secondary=member_gzp, backref=db.backref('exec_gzp', lazy='dynamic'),
+                              lazy="dynamic")  # 工作班成员
+    wts = db.relationship("WT", secondary=wt_gzp, backref=db.backref('exec_gzp', lazy='dynamic'),
+                          lazy="dynamic")  # 风机号
+    is_end = db.Column(db.Boolean, default=False)  # 是否终结
+    @staticmethod
+    def to_col_dict(query):
+        data = {
+            'items': [item.to_dict() for item in query]
+        }
+        return data
+
+
+# 限电记录
+class PowerCut(PaginatedAPIMixin, db.Model):
+    __tablename__ = 'powercut'
+    id = db.Column(db.Integer, primary_key=True)
+    start_time = db.Column(db.DateTime)  # 限电开始时间
+    stop_time = db.Column(db.DateTime)  # 限电结束时间
+    time = db.Column(db.Float) #限电时间
+    lost_power1 = db.Column(db.Float)  # 1期损失电量
+    lost_power2 = db.Column(db.Float)  # 2期损失电量
