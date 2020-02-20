@@ -7,6 +7,7 @@ from app.models import WTMaintain, Gzp
 from sqlalchemy import or_
 
 OMS_PATH = "C:\\Users\\Kyle\\Desktop\\2020年OMS日报.xlsx"
+TY_PATH = "C:\\Users\\Kyle\\Desktop\\石桥风电场报送每日风机电量风速统计表 2020.xlsx"
 
 
 def realRound(d, n=0):
@@ -95,3 +96,23 @@ def get_lost_power(date):
 
     res['sum'] = res['gz'] + res['wh']
     return res
+
+
+# 获取今日维护、故障停机次数
+def get_num(date):
+    wtms = WTMaintain.query.filter(
+        or_(WTMaintain.start_time >= date, WTMaintain.stop_time >= date, WTMaintain.start_time.is_(None))).all()
+    num= {
+        'gz': [],
+        'wh': [],
+    }
+    for x in range(40):
+        num['gz'].append(0)
+        num['wh'].append(0)
+    for wtm in wtms:
+        if Gzp.query.filter_by(gzp_id=wtm.gzp_id).first().error_code:
+            key = 'gz'
+        else:
+            key = 'wh'
+        num[key][wtm.wt_id-1] = num[key][wtm.wt_id-1] +1
+    return num

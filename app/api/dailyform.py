@@ -13,7 +13,7 @@ from sqlalchemy import or_
 from app import db
 from app.api import bp
 from app.models import CalDailyForm, WTMaintain, PowerCut
-from app.tool.tool import realRound, DecimalEncoder, OMS_PATH, get_stop_time, get_lost_power
+from app.tool.tool import realRound, DecimalEncoder, OMS_PATH, get_stop_time, get_lost_power, TY_PATH, get_num
 
 EXCEL_PATH = "C:\\Users\\Kyle\\Desktop\\2020年石桥风电场日报表.xlsx"
 
@@ -569,3 +569,83 @@ def to_oms():
         res
     ])
 
+
+@bp.route('/toty', methods=["GET"])
+def to_ty():
+    """
+    将填写数据写入桃园报表
+    """
+    date = getdate()
+    cdf = CalDailyForm.query.filter_by(date=date).first()
+    workbook = openpyxl.load_workbook(TY_PATH, data_only=True)
+    ws_fdl = workbook['发电量统计']
+    ws_fs = workbook['风速统计']
+    ws_fjzt = workbook['风机状态统计']
+    ws_xd = workbook['限电量统计']
+    num = get_num(date)
+    gz_num1 = 0
+    gz_num2 = 0
+    wh_num1 = 0
+    wh_num2 = 0
+    for x in range(0, 20):
+        if num['wh'][x] != 0:
+            wh_num1 = wh_num1 + 1
+        elif num['gz'][x] != 0:
+            gz_num1 = gz_num1 + 1
+    for x in range(20, 40):
+        if num['wh'][x] != 0:
+            wh_num2 = wh_num2 + 1
+        elif num['gz'][x] != 0:
+            gz_num2 = gz_num2 + 1
+    for row_num in range(1, ws_fdl.max_row):
+        if ws_fdl.cell(row_num, 1).value == getdate():
+            ws_fdl.cell(row_num, 2, realRound(cdf.dgp1 / 10000, 4))
+            ws_fdl.cell(row_num, 3, realRound(cdf.dgp2 / 10000, 4))
+            ws_fs.cell(row_num - 1, 2, realRound(cdf.davgs1, 2))
+            ws_fs.cell(row_num - 1, 3, realRound(cdf.davgs2, 2))
+            ws_fjzt.cell(row_num, 2, 20 - gz_num1 - wh_num1)
+            ws_fjzt.cell(row_num, 3, gz_num1)
+            ws_fjzt.cell(row_num, 4, wh_num1)
+            ws_fjzt.cell(row_num, 5, 0)
+            ws_fjzt.cell(row_num, 6, 20 - gz_num2 - wh_num2)
+            ws_fjzt.cell(row_num, 7, gz_num2)
+            ws_fjzt.cell(row_num, 8, wh_num2)
+            ws_fjzt.cell(row_num, 9, 0)
+            break
+    pcs = PowerCut.query.filter(
+        or_(PowerCut.start_time >= date, PowerCut.stop_time >= date)).all()
+    changed_row_num = []
+    today_lost_power = 0
+    sum_lost_power = 0
+    for row_num in range(2, ws_xd.max_row):
+        if ws_xd.cell(row_num, 3).value in [None, '']:
+            for pc in pcs:
+                ws_xd.cell(row_num, 3, pc.start_time.strftime('%H:%M') + '-' + pc.stop_time.strftime('%H:%M'))
+                ws_xd.cell(row_num, 4, pc.start_time.strftime('%H:%M') + '-' + pc.stop_time.strftime('%H:%M'))
+                ws_xd.cell(row_num, 6, pc.lost_power1 + pc.lost_power2)
+                ws_xd.cell(row_num, 5, realRound((pc.stop_time - pc.start_time).seconds / 3600, 2))
+                changed_row_num.append(row_num)
+                today_lost_power = today_lost_power + ws_xd.cell(row_num, 6).value
+                row_num = row_num + 1
+            ws_xd.cell(changed_row_num[0], 2).value = date.strftime('%Y.%m.%d')
+            ws_xd.merge_cells(start_row=changed_row_num[0], start_column=2,
+                              end_row=changed_row_num[changed_row_num.__len__() - 1], end_column=2)
+            ws_xd.cell(changed_row_num[0], 7).value = today_lost_power
+            ws_xd.merge_cells(start_row=changed_row_num[0], start_column=7,
+                              end_row=changed_row_num[changed_row_num.__len__() - 1], end_column=7)
+            row_num_pre = 0
+            for merged_cell in ws_xd.merged_cells:
+                if merged_cell.min_row <= changed_row_num[0] - 1 <= merged_cell.max_row \
+                        and 8 >= merged_cell.min_col and 8 <= merged_cell.max_col:
+                    row_num_pre = merged_cell.min_row
+            ws_xd.cell(changed_row_num[0], 8).value = sum_lost_power+today_lost_power
+            ws_xd.merge_cells(start_row=changed_row_num[0], start_column=8,
+                              end_row=changed_row_num[changed_row_num.__len__() - 1], end_column=8)
+            break
+        else:
+            sum_lost_power = sum_lost_power + ws_xd.cell(row_num, 6).value
+
+    workbook.save(TY_PATH)
+    response = jsonify()
+    response.status_code = 200
+    return response

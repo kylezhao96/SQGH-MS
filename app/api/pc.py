@@ -148,6 +148,7 @@ def del_pc_db():
     db.session.commit()
     return jsonify()
 
+
 @bp.route('/delpccdf', methods=['POST'])
 def del_pc_cdf():
     """
