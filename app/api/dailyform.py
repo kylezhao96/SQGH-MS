@@ -649,3 +649,16 @@ def to_ty():
     response = jsonify()
     response.status_code = 200
     return response
+
+
+@bp.route('/getbmz', methods=["GET"])
+def get_bmz():
+    """
+    获取标码值
+    """
+    date = getdate()
+    cdf = CalDailyForm.query.filter_by(date=date).first()
+    print(cdf.to_dict())
+    response = jsonify(cdf.to_dict())
+    response.status_code = 200
+    return response
