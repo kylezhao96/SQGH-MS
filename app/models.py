@@ -256,11 +256,11 @@ class CalDailyForm(PaginatedAPIMixin, db.Model):
         return '<CalDailyForm {}'.format(self.name)
 
     def to_dict(self):
-        data = {
-            # 'id': self.id,
-            # 'name': self.name,
-            # 'day': self.day,
-        }
+        data = {}
+        for name in dir(self):
+            value = getattr(self, name)
+            if not name.startswith('_') and  (type(value)==int or type(value)==float):
+                data[name] = value
         return data
 
     def from_dict(self, data):
