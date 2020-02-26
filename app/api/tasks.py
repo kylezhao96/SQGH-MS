@@ -1,13 +1,18 @@
 # from flask_cors import cross_origin
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import logging, time, datetime, openpyxl, os, sys, xlrd
-from decimal import Decimal, ROUND_HALF_UP
+import datetime
+import logging
+import openpyxl
+import os
+import xlrd
+from decimal import Decimal
+
 import pyperclip
 from flask import jsonify, request
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 from app import db
 from app.api import bp
@@ -15,8 +20,9 @@ from app.api.errors import bad_request
 from app.models import DailyTask, MonthlyTask
 from app.tool.tool import realRound
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(message)s')
+# logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(message)s')
 today = datetime.date.today()
+
 
 @bp.route('/dailytasks', methods=['GET'])
 def get_dailytasks():
@@ -50,10 +56,11 @@ def create_task():
     if 'name' not in data or 'day' not in data or 'time' not in data:
         return bad_request('缺少必要项！')
     data['hour'] = int(data['time'].split(':')[0])
-    data['minute']  = int(data['time'].split(':')[1])
+    data['minute'] = int(data['time'].split(':')[1])
     print(data)
     if DailyTask.query.filter_by(name=data['name']).first():
-        if DailyTask.query.filter_by(name=data['name']).first().hour==data['hour'] and DailyTask.query.filter_by(name=data['name']).first().minute==data['minute']:
+        if DailyTask.query.filter_by(name=data['name']).first().hour == data['hour'] and DailyTask.query.filter_by(
+                name=data['name']).first().minute == data['minute']:
             return bad_request('任务已存在！')
     task = DailyTask()
     task.from_dict(data)
@@ -72,27 +79,30 @@ def do_task():
     :param data: a list contain hour,power and wind speed
     :returns: status_code
     """
-    data = request.get_json()or {}
+    data = request.get_json() or {}
     hour = datetime.datetime.now().hour
     this_hour = 0
-    if hour<=8:
+    if hour <= 8:
         this_hour = '08'
-    elif hour <=12:
+    elif hour <= 12:
         this_hour = '12'
     elif hour <= 17:
         this_hour = '17'
-    else :
+    else:
         this_hour = '21'
     print(data)
-    sum = data['num1']+data['num2']+data['num3']
-    pyperclip.copy(this_hour+':00：石桥风电场出力'+data['power']+'MW，风速'+data['windspeed']+'m/s，'+data['windir']+'风，风机停运共'+str(sum)+'台(维护'+str(data['num1'])+'台，故障'+str(data['num2'])+'台，无通讯'+str(data['num3'])+'台)，无输变电设备停电。')
+    sum = data['num1'] + data['num2'] + data['num3']
+    pyperclip.copy(this_hour + ':00：石桥风电场出力' + data['power'] + 'MW，风速' + data['windspeed'] + 'm/s，' + data[
+        'windir'] + '风，风机停运共' + str(sum) + '台(维护' + str(data['num1']) + '台，故障' + str(data['num2']) + '台，无通讯' + str(
+        data['num3']) + '台)，无输变电设备停电。')
     info = pyperclip.paste()
     print(info)
     response = jsonify(info)
     response.status_code = 201
     return response
 
-@bp.route('/fixclip', methods = ['POST'])
+
+@bp.route('/fixclip', methods=['POST'])
 def fix_clip():
     """
     本函数用于对粘贴板内出力信息进行二次编辑
@@ -103,10 +113,12 @@ def fix_clip():
     response = jsonify(info)
     response.status_code = 201
     return response
+
+
 # update
 
 
-@bp.route('/submitjtrb', methods = ['GET'])
+@bp.route('/submitjtrb', methods=['GET'])
 def submit_jtrb():
     """
     上报集团公司日报
@@ -140,7 +152,7 @@ def submit_jtrb():
         logging.debug('Error!')
         broswer.quit()
     broswer.get(
-        "http://10.82.1.60:8082/Rum-web/rum/rqreport/inputReport.jsp?issue=620"+year + mon + day + "&username=JT_DOMAIN_20027658&resourcesid=T_AS_D_YXGL_SCYXRB_TB_FD&state=1&nodeId=&processinstanceId=&ticket=SlRfRE9NQUlOXzIwMDI3NjU4&w=1881&h=780")
+        "http://10.82.1.60:8082/Rum-web/rum/rqreport/inputReport.jsp?issue=620" + year + mon + day + "&username=JT_DOMAIN_20027658&resourcesid=T_AS_D_YXGL_SCYXRB_TB_FD&state=1&nodeId=&processinstanceId=&ticket=SlRfRE9NQUlOXzIwMDI3NjU4&w=1881&h=780")
     try:
         element = WebDriverWait(broswer, 10).until(
             EC.title_contains('国华石桥生产运行情况日报表')
@@ -238,7 +250,7 @@ def submit_jtrb():
 
 
 def calRowNum():
-    dayDif = (datetime.datetime.now() - datetime.datetime( datetime.datetime.now().year, 1, 1)).days
+    dayDif = (datetime.datetime.now() - datetime.datetime(datetime.datetime.now().year, 1, 1)).days
     return dayDif + 4
 
 
@@ -260,46 +272,46 @@ def readExcel():  # 读取日报表
     kyxs_col = 10
     jhtyxs_col = 11
     fjhtyxs_col = 12
-    rxdl_col  = 13
-    for x in range(1,15):
-        if jtgs.cell(row=3,column=x).value == '运行容量':
+    rxdl_col = 13
+    for x in range(1, 15):
+        if jtgs.cell(row=3, column=x).value == '运行容量':
             yxrl_col = x
-        if jtgs.cell(row=3,column=x).value == '检修容量':
+        if jtgs.cell(row=3, column=x).value == '检修容量':
             jxrl_col = x
-        if jtgs.cell(row=3,column=x).value == '备用容量':
+        if jtgs.cell(row=3, column=x).value == '备用容量':
             byrl_col = x
-        if jtgs.cell(row=3,column=x).value == '临检容量':
+        if jtgs.cell(row=3, column=x).value == '临检容量':
             ljrl_col = x
-        if jtgs.cell(row=3,column=x).value == '厂用电量':
+        if jtgs.cell(row=3, column=x).value == '厂用电量':
             cydl_col = x
-        if jtgs.cell(row=3,column=x).value == '可用小时':
+        if jtgs.cell(row=3, column=x).value == '可用小时':
             kyxs_col = x
-        if jtgs.cell(row=3,column=x).value == '计划停运小时':
+        if jtgs.cell(row=3, column=x).value == '计划停运小时':
             jhtyxs_col = x
-        if jtgs.cell(row=3,column=x).value == '非计划停运小时':
+        if jtgs.cell(row=3, column=x).value == '非计划停运小时':
             fjhtyxs_col = x
-        if jtgs.cell(row=3,column=x).value == '日限电量':
+        if jtgs.cell(row=3, column=x).value == '日限电量':
             rxdl_col = x
     val.append('0')  # 运行容量 0
-    val.append(realRound(jtgs.cell(row=rowNum,column=jxrl_col).value, 1))  # 检修容量 1
-    val.append(realRound(jtgs.cell(row=rowNum,column=byrl_col).value, 1))  # 备用容量 2
-    val.append(realRound(jtgs.cell(row=rowNum,column=ljrl_col).value, 1))  # 临检容量 3
+    val.append(realRound(jtgs.cell(row=rowNum, column=jxrl_col).value, 1))  # 检修容量 1
+    val.append(realRound(jtgs.cell(row=rowNum, column=byrl_col).value, 1))  # 备用容量 2
+    val.append(realRound(jtgs.cell(row=rowNum, column=ljrl_col).value, 1))  # 临检容量 3
     val[0] = Decimal(100000) - val[1] - val[2] - val[3]  # 运行容量 3
     val.append('0')  # 新增容量 4
     val.append(realRound(rbjs['AF' + str(rowNum)].value / 10000, 4))  # 发电量 5
     val.append('0')  # 试运行发电量 6
     val.append(realRound(rbjs['AI' + str(rowNum)].value / 10000, 4))  # 场用电量 7
-    val.append(realRound(jtgs.cell(row=rowNum,column=cydl_col).value, 4))  # 厂用电量 8
+    val.append(realRound(jtgs.cell(row=rowNum, column=cydl_col).value, 4))  # 厂用电量 8
     val.append(realRound(rbjs['AG' + str(rowNum)].value / 10000, 4))  # 上网电量 9
     val.append(realRound(rbjs['AH' + str(rowNum)].value / 10000, 4))  # 下网电量 10
     val.append(readExcel2())  # 平均风速 11
-    if jtgs.cell(row = rowNum,column=rxdl_col).value in [None,'']:
+    if jtgs.cell(row=rowNum, column=rxdl_col).value in [None, '']:
         val.append(0)
     else:
-        val.append(jtgs.cell(row = rowNum,column=rxdl_col).value)  # 限电量   12
+        val.append(jtgs.cell(row=rowNum, column=rxdl_col).value)  # 限电量   12
     val.append('24')  # 可用小时13
-    val.append(realRound(jtgs.cell(rowNum,jhtyxs_col).value, 2))  # 计划停运小时14
-    val.append(realRound(jtgs.cell(row=rowNum,column=fjhtyxs_col).value, 2))  # 非计划停运小时15
+    val.append(realRound(jtgs.cell(rowNum, jhtyxs_col).value, 2))  # 计划停运小时14
+    val.append(realRound(jtgs.cell(row=rowNum, column=fjhtyxs_col).value, 2))  # 非计划停运小时15
     gztj = wb.get_sheet_by_name('风机故障统计')
     val[13] = Decimal(24) - val[14] - val[15]
     # print(val)  # 测试用，时常使用时请注释掉

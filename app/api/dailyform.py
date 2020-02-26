@@ -554,6 +554,8 @@ def to_oms():
         "used_p": float(realRound(cdf.dgp / 10000, 2) - realRound(cdf.donp / 10000, 2)),
         "blocked_p": float(realRound(get_lost_power(date)['sum'], 2)),
         "limited_p": float(realRound(cdf.dlp, 2)),
+        'max_l': cdf.dmaxl,
+        'min_l':cdf.dminl
     }
     worksheet.cell(this_row_num, 2, res['stop_time'])  # 维护+故障停机时间
     worksheet.cell(this_row_num, 3, res['installed_cap'])  # 装机容量
@@ -577,7 +579,7 @@ def to_ty():
     """
     date = getdate()
     cdf = CalDailyForm.query.filter_by(date=date).first()
-    workbook = openpyxl.load_workbook(TY_PATH, data_only=True)
+    workbook = openpyxl.load_workbook(TY_PATH)
     ws_fdl = workbook['发电量统计']
     ws_fs = workbook['风速统计']
     ws_fjzt = workbook['风机状态统计']
@@ -617,34 +619,34 @@ def to_ty():
     changed_row_num = []
     today_lost_power = 0
     sum_lost_power = 0
-    for row_num in range(2, ws_xd.max_row):
-        if ws_xd.cell(row_num, 3).value in [None, '']:
-            for pc in pcs:
-                ws_xd.cell(row_num, 3, pc.start_time.strftime('%H:%M') + '-' + pc.stop_time.strftime('%H:%M'))
-                ws_xd.cell(row_num, 4, pc.start_time.strftime('%H:%M') + '-' + pc.stop_time.strftime('%H:%M'))
-                ws_xd.cell(row_num, 6, pc.lost_power1 + pc.lost_power2)
-                ws_xd.cell(row_num, 5, realRound((pc.stop_time - pc.start_time).seconds / 3600, 2))
-                changed_row_num.append(row_num)
-                today_lost_power = today_lost_power + ws_xd.cell(row_num, 6).value
-                row_num = row_num + 1
-            ws_xd.cell(changed_row_num[0], 2).value = date.strftime('%Y.%m.%d')
-            ws_xd.merge_cells(start_row=changed_row_num[0], start_column=2,
-                              end_row=changed_row_num[changed_row_num.__len__() - 1], end_column=2)
-            ws_xd.cell(changed_row_num[0], 7).value = today_lost_power
-            ws_xd.merge_cells(start_row=changed_row_num[0], start_column=7,
-                              end_row=changed_row_num[changed_row_num.__len__() - 1], end_column=7)
-            row_num_pre = 0
-            for merged_cell in ws_xd.merged_cells:
-                if merged_cell.min_row <= changed_row_num[0] - 1 <= merged_cell.max_row \
-                        and 8 >= merged_cell.min_col and 8 <= merged_cell.max_col:
-                    row_num_pre = merged_cell.min_row
-            ws_xd.cell(changed_row_num[0], 8).value = sum_lost_power+today_lost_power
-            ws_xd.merge_cells(start_row=changed_row_num[0], start_column=8,
-                              end_row=changed_row_num[changed_row_num.__len__() - 1], end_column=8)
-            break
-        else:
-            sum_lost_power = sum_lost_power + ws_xd.cell(row_num, 6).value
-
+    if pcs:
+        for row_num in range(2, ws_xd.max_row):
+            if ws_xd.cell(row_num, 3).value in [None, '']:
+                for pc in pcs:
+                    ws_xd.cell(row_num, 3, pc.start_time.strftime('%H:%M') + '-' + pc.stop_time.strftime('%H:%M'))
+                    ws_xd.cell(row_num, 4, pc.start_time.strftime('%H:%M') + '-' + pc.stop_time.strftime('%H:%M'))
+                    ws_xd.cell(row_num, 6, pc.lost_power1 + pc.lost_power2)
+                    ws_xd.cell(row_num, 5, realRound((pc.stop_time - pc.start_time).seconds / 3600, 2))
+                    changed_row_num.append(row_num)
+                    today_lost_power = today_lost_power + ws_xd.cell(row_num, 6).value
+                    row_num = row_num + 1
+                ws_xd.cell(changed_row_num[0], 2).value = date.strftime('%Y.%m.%d')
+                ws_xd.merge_cells(start_row=changed_row_num[0], start_column=2,
+                                  end_row=changed_row_num[changed_row_num.__len__() - 1], end_column=2)
+                ws_xd.cell(changed_row_num[0], 7).value = today_lost_power
+                ws_xd.merge_cells(start_row=changed_row_num[0], start_column=7,
+                                  end_row=changed_row_num[changed_row_num.__len__() - 1], end_column=7)
+                row_num_pre = 0
+                for merged_cell in ws_xd.merged_cells:
+                    if merged_cell.min_row <= changed_row_num[0] - 1 <= merged_cell.max_row \
+                            and 8 >= merged_cell.min_col and 8 <= merged_cell.max_col:
+                        row_num_pre = merged_cell.min_row
+                ws_xd.cell(changed_row_num[0], 8).value = sum_lost_power + today_lost_power
+                ws_xd.merge_cells(start_row=changed_row_num[0], start_column=8,
+                                  end_row=changed_row_num[changed_row_num.__len__() - 1], end_column=8)
+                break
+            else:
+                sum_lost_power = sum_lost_power + ws_xd.cell(row_num, 6).value
     workbook.save(TY_PATH)
     response = jsonify()
     response.status_code = 200
@@ -658,7 +660,73 @@ def get_bmz():
     """
     date = getdate()
     cdf = CalDailyForm.query.filter_by(date=date).first()
-    print(cdf.to_dict())
-    response = jsonify(cdf.to_dict())
-    response.status_code = 200
+    if cdf == None:
+        response = jsonify({})
+        response.status_code = 202
+    else:
+        response = jsonify(cdf.to_dict())
     return response
+
+
+@bp.route('/getdfs', methods=['GET'])
+def get_dfs():
+    """
+    获取昨日及今日日报表数据
+    """
+    date = datetime.datetime.combine(datetime.date.today(), datetime.time(0, 0, 0)) + datetime.timedelta(-1)
+    cdfs = CalDailyForm.query.filter(CalDailyForm.date >= date + datetime.timedelta(-1)) \
+        .order_by(CalDailyForm.date.desc()) \
+        .limit(2) \
+        .all()
+    if len(cdfs) == 0:
+        import_cdf()
+        cdfs = CalDailyForm.query.filter(CalDailyForm.date >= date + datetime.timedelta(-1)) \
+            .order_by(CalDailyForm.date.desc()) \
+            .limit(2) \
+            .all()
+        if len(cdfs) == 0:
+            response = jsonify()
+            response.status_code = 202
+            return response
+    data = []
+    for cdf in cdfs:
+        data.append({
+            'date': cdf.date.strftime('%y/%m/%d'),
+            'dgp': realRound(cdf.dgp / 10000, 4),
+            'dlp': 0 if cdf.dlp in [None, ''] else cdf.dlp,
+            'dlpl': 0 if cdf.dlp in [None, ''] else format(realRound(cdf.dlp / cdf.dgp * 100, 4), '0.2f') + '%',
+            'donp': realRound(cdf.donp / 10000, 4),
+            'doffp': realRound(cdf.doffp / 10000, 4),
+            'dcp': realRound(cdf.dcp / 10000, 4),
+            'dcl': format(realRound(cdf.dcp / cdf.dgp * 100, 4), '0.2f') + '%',
+            'dmaxs': '' if cdf.dmaxs in [None, ''] else cdf.dmaxs,
+            'dmins': '' if cdf.dmins in [None, ''] else cdf.dmins,
+            'davgs': '' if cdf.davgs in [None, ''] else cdf.davgs,
+        })
+    return jsonify(json.dumps(data, cls=DecimalEncoder))
+
+
+@bp.route('/getoms', methods=["GET"])
+def get_oms():
+    """
+    将获取oms报表
+    """
+    date = getdate()
+    cdf = CalDailyForm.query.filter_by(date=date).first()
+    stop_time = get_stop_time(date)['sum']
+    res = {
+        'stop_time': float(realRound(stop_time, 2)),
+        'installed_cap': 100,
+        "fix_cap": float(realRound(stop_time / 24 * 2.5, 2)),
+        "boot_cap": float(realRound(100 - stop_time / 24 * 2.5, 2)),
+        "g_p": float(realRound(cdf.dgp / 10000, 2)),
+        "on_p": float(realRound(cdf.donp / 10000, 2)),
+        "used_p": float(realRound(cdf.dgp / 10000, 2) - realRound(cdf.donp / 10000, 2)),
+        "blocked_p": float(realRound(get_lost_power(date)['sum'], 2)),
+        "limited_p": float(realRound(cdf.dlp, 2)),
+        'max_l': cdf.dmaxl,
+        'min_l': cdf.dminl
+    }
+    return jsonify([
+        res
+    ])
