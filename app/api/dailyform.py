@@ -29,7 +29,7 @@ def save_excel(path):
     app.kill()
 
 
-@bp.route('/updatefullcdf', methods=['GET'])
+@bp.route('/cdfsyn', methods=['GET'])
 def import_cdf():
     """
     自动化对日报表进行读取同步

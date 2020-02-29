@@ -225,6 +225,7 @@ def post_gzp():
     gzp.members = members_temp
     if not pd.isnull(data_gzp.loc[9].values[5]):
         gzp.error_code = data_gzp.loc[9].values[5]
+        gzp.error_content = re.match(r'(处理)?(\w+)', data_gzp.loc[11].values[10]).group(2)
     gzp_wts_id = list(
         map(lambda x: re.match(r'^(A)(\d+)$', x).group(2), re.findall(re.compile(r'A\d+'), data_gzp.loc[11].values[0])))
     gzp.wts = list(map(lambda x: WT.query.filter_by(id=int(x)).first(), gzp_wts_id))  # wt放在最后
@@ -271,6 +272,10 @@ def wtms2db():
         gzp = Gzp.query.filter_by(gzp_id=data['id']).first()
         gzp.wtms.append(wtm_db)
         gzp.is_end = True
+        if gzp.error_code:  # 故障
+            wtm_db.error_code = gzp.error_code
+        else:
+            wtm_db.task = gzp.task
         stop_time = datetime.datetime.strptime(wtm['stop_time'], '%Y-%m-%d %H:%M')
         wtm_db.stop_time = datetime.datetime(stop_time.year, stop_time.month, stop_time.day, stop_time.hour,
                                              stop_time.minute)
@@ -415,3 +420,82 @@ def change_cdf():
                         break
     workbook.save(EXCEL_PATH)
     return jsonify(flag)
+
+
+@bp.route('/wtmsyn', methods=['GET'])
+def gzp_syn():
+    whtj = pd.read_excel(EXCEL_PATH, sheet_name='风机维护统计', usecols=range(16), header=None).fillna('')
+    gztj = pd.read_excel(EXCEL_PATH, sheet_name='风机故障统计', usecols=range(20), header=None).fillna('')
+    # 维护
+    for x in range(len(whtj)):
+        if re.findall(r'^(A)(\d+)(\s*)(\d{5})$', whtj.loc[x].values[0]):
+            if WTMaintain.query.filter(WTMaintain.stop_time == whtj.loc[x].values[3],
+                                       WTMaintain.start_time == whtj.loc[x].values[4]).first():
+                wtm = WTMaintain.query.filter(WTMaintain.stop_time == whtj.loc[x].values[3],
+                                              WTMaintain.start_time == whtj.loc[x].values[4]).first()
+            else:
+                wtm = WTMaintain()
+            wtm.wt_id = int(re.match(r'^(A)(\d+)(\s*)(\d{5})$', whtj.loc[3].values[0]).group(2))
+            wtm.type = whtj.loc[x].values[1]
+            wtm.task = whtj.loc[x].values[2]
+            wtm.stop_time = whtj.loc[x].values[3]
+            wtm.start_time = whtj.loc[x].values[4]
+            wtm.time = realRound((wtm.start_time - wtm.stop_time).seconds / 3600, 2)
+            wtm.lost_power = realRound(float(whtj.loc[x].values[6]), 4)
+            db.session.add(wtm)
+            db.session.commit()
+        if re.findall(r'^(A)(\d+)(\s*)(\d{5})$', whtj.loc[x].values[8]):
+            if WTMaintain.query.filter(WTMaintain.stop_time == whtj.loc[x].values[11],
+                                       WTMaintain.start_time == whtj.loc[x].values[12]).first():
+                wtm = WTMaintain.query.filter(WTMaintain.stop_time == whtj.loc[x].values[11],
+                                              WTMaintain.start_time == whtj.loc[x].values[12]).first()
+            else:
+                wtm = WTMaintain()
+            wtm.wt_id = int(re.match(r'^(A)(\d+)(\s*)(\d{5})$', whtj.loc[x].values[8]).group(2))
+            wtm.type = whtj.loc[x].values[9]
+            wtm.task = whtj.loc[x].values[10]
+            wtm.stop_time = whtj.loc[x].values[11]
+            wtm.start_time = whtj.loc[x].values[12]
+            wtm.time = realRound((wtm.start_time - wtm.stop_time).seconds / 3600, 2)
+            wtm.lost_power = realRound(float(whtj.loc[x].values[13]), 4)
+            db.session.add(wtm)
+            db.session.commit()
+    # 故障
+    for x in range(len(gztj)):
+        if re.findall(r'^(A)(\d+)(\s*)(\d{5})$', gztj.loc[x].values[0]):
+            if WTMaintain.query.filter(WTMaintain.stop_time == gztj.loc[x].values[4],
+                                       WTMaintain.start_time == gztj.loc[x].values[5]).first():
+                wtm = WTMaintain.query.filter(WTMaintain.stop_time == gztj.loc[x].values[4],
+                                              WTMaintain.start_time == gztj.loc[x].values[5]).first()
+            else:
+                wtm = WTMaintain()
+            wtm.wt_id = int(re.match(r'^(A)(\d+)(\s*)(\d{5})$', gztj.loc[x].values[0]).group(2))
+            wtm.error_code = gztj.loc[x].values[1]
+            wtm.error_content = gztj.loc[x].values[2]
+            wtm.type = gztj.loc[x].values[3]
+            wtm.stop_time = gztj.loc[x].values[4]
+            wtm.start_time = gztj.loc[x].values[5]
+            wtm.time = realRound((wtm.start_time - wtm.stop_time).seconds / 3600, 2)
+            wtm.lost_power = realRound(float(gztj.loc[x].values[7]), 4)
+            wtm.error_approach = gztj.loc[x].values[8]
+            db.session.add(wtm)
+            db.session.commit()
+        if re.findall(r'^(A)(\d+)(\s*)(\d{5})$', gztj.loc[x].values[10]):
+            if WTMaintain.query.filter(WTMaintain.stop_time == gztj.loc[x].values[14],
+                                       WTMaintain.start_time == gztj.loc[x].values[15]).first():
+                wtm = WTMaintain.query.filter(WTMaintain.stop_time == gztj.loc[x].values[14],
+                                              WTMaintain.start_time == gztj.loc[x].values[15]).first()
+            else:
+                wtm = WTMaintain()
+            wtm.wt_id = int(re.match(r'^(A)(\d+)(\s*)(\d{5})$', gztj.loc[x].values[10]).group(2))
+            wtm.error_code = gztj.loc[x].values[11]
+            wtm.error_content = gztj.loc[x].values[12]
+            wtm.type = gztj.loc[x].values[13]
+            wtm.stop_time = gztj.loc[x].values[14]
+            wtm.start_time = gztj.loc[x].values[15]
+            wtm.time = realRound((wtm.start_time - wtm.stop_time).seconds / 3600, 2)
+            wtm.lost_power = realRound(float(gztj.loc[x].values[17]), 4)
+            wtm.error_approach = gztj.loc[x].values[18]
+            db.session.add(wtm)
+            db.session.commit()
+    return jsonify({})
