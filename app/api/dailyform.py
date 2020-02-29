@@ -35,7 +35,7 @@ def import_cdf():
     自动化对日报表进行读取同步
     """
     cdf = pd.read_excel(EXCEL_PATH, sheet_name='日报计算表', usecols=range(76), skiprows=range(3), header=None)
-    # cdf = df_from_excel(EXCEL_PATH, '日报计算表', 76, 3, None)
+    ty = pd.read_excel(TY_PATH, sheet_name='风速统计', usecols=range(3), skiprows=range(2), header=None).fillna('')
     cdf.fillna(0)
     print(cdf)
     response = []
@@ -143,6 +143,9 @@ def import_cdf():
             data['offjr311'] = cdf.loc[x].values[71]
             data['offja321'] = cdf.loc[x].values[73]
             data['offjr321'] = cdf.loc[x].values[75]
+            data['davgs1'] = ty.loc[x-1].values[1]
+            data['davgs2'] = ty.loc[x-1].values[2]
+            data['davgs'] = float(realRound((ty.loc[x - 1].values[1]+ty.loc[x-1].values[2])/2,2))
         response.append(data)
         if CalDailyForm.query.filter_by(date=cdf.loc[x + 1].values[0] + datetime.timedelta(-1)).first():
             # continue  # 如果数据库存在本日数据，那么跳过
