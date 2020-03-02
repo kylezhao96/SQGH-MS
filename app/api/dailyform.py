@@ -143,9 +143,9 @@ def import_cdf():
             data['offjr311'] = cdf.loc[x].values[71]
             data['offja321'] = cdf.loc[x].values[73]
             data['offjr321'] = cdf.loc[x].values[75]
-            data['davgs1'] = ty.loc[x-1].values[1]
-            data['davgs2'] = ty.loc[x-1].values[2]
-            data['davgs'] = float(realRound((ty.loc[x - 1].values[1]+ty.loc[x-1].values[2])/2,2))
+            data['davgs1'] = float(ty.loc[x - 1].values[1])
+            data['davgs2'] = float(ty.loc[x - 1].values[2])
+            data['davgs'] = float(realRound((data['davgs1'] + data['davgs2']) / 2, 2))
         response.append(data)
         if CalDailyForm.query.filter_by(date=cdf.loc[x + 1].values[0] + datetime.timedelta(-1)).first():
             # continue  # 如果数据库存在本日数据，那么跳过
@@ -558,7 +558,7 @@ def to_oms():
         "blocked_p": float(realRound(get_lost_power(date)['sum'], 2)),
         "limited_p": float(realRound(cdf.dlp, 2)),
         'max_l': cdf.dmaxl,
-        'min_l':cdf.dminl
+        'min_l': cdf.dminl
     }
     worksheet.cell(this_row_num, 2, res['stop_time'])  # 维护+故障停机时间
     worksheet.cell(this_row_num, 3, res['installed_cap'])  # 装机容量

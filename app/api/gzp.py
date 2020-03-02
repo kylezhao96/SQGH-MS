@@ -86,7 +86,8 @@ def get_gzps():
                         wtms[index] = {
                             'wt_id': wt.id,
                             'stop_time': datetime.datetime.strftime(wtm.stop_time, '%Y-%m-%d %H:%M'),
-                            'start_time': datetime.datetime.strftime(wtm.start_time, '%Y-%m-%d %H:%M'),
+                            'start_time': '' if not wtm.start_time else datetime.datetime.strftime(wtm.start_time,
+                                                                                                   '%Y-%m-%d %H:%M'),
                             'lost_power': wtm.lost_power,
                             'time': wtm.time
                         }
@@ -262,7 +263,7 @@ def wtms2db():
     将风机维护数据写入数据库
     """
     data = request.get_json() or {}
-    print(data)
+    response = jsonify()
     for wtm in data['wtms']:
         if not WTMaintain.query.filter(WTMaintain.gzp_id == data['id'], WTMaintain.wt_id == wtm['wt_id']).first():
             wtm_db = WTMaintain()
@@ -279,17 +280,25 @@ def wtms2db():
         stop_time = datetime.datetime.strptime(wtm['stop_time'], '%Y-%m-%d %H:%M')
         wtm_db.stop_time = datetime.datetime(stop_time.year, stop_time.month, stop_time.day, stop_time.hour,
                                              stop_time.minute)
-        start_time = datetime.datetime.strptime(wtm['start_time'], '%Y-%m-%d %H:%M')
-        wtm_db.start_time = datetime.datetime(start_time.year, start_time.month, start_time.day, start_time.hour,
-                                              start_time.minute)
-        wtm_db.time = realRound((wtm_db.start_time - wtm_db.stop_time).seconds / 3600, 2)
-        wtm_db.lost_power = float(wtm['lost_power'])
 
+        if 'start_time' in wtm.keys():
+            if wtm['start_time']:
+                start_time = datetime.datetime.strptime(wtm['start_time'], '%Y-%m-%d %H:%M')
+                wtm_db.start_time = datetime.datetime(start_time.year, start_time.month, start_time.day, start_time.hour,
+                                                      start_time.minute)
+                wtm_db.time = realRound((wtm_db.start_time - wtm_db.stop_time).seconds / 3600, 2)
+                wtm_db.lost_power = float(wtm['lost_power'])
+            else:
+                gzp.is_end = False
+                response.status_code = 201
+        else:
+            gzp.is_end = False
+            response.status_code = 201
         db.session.add(wtm_db)
         db.session.commit()
         db.session.add(gzp)
         db.session.commit()
-    return jsonify('ok')
+    return response
 
 
 @bp.route('/wtmstocdf', methods=['POST'])
