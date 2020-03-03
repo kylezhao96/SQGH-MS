@@ -190,8 +190,8 @@ def del_gzp_cdf():
                         response.status_code = 200  # 代表找到
                         break
                 else:
-                    if worksheet.cell(row_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == wtm['stop_time'] \
-                            and worksheet.cell(row_num, start_col + 5).value.strftime('%Y-%m-%d %H:%M') == wtm[
+                    if worksheet.cell(row_num, start_col + 2).value.strftime('%Y-%m-%d %H:%M') == wtm['stop_time'] \
+                            and worksheet.cell(row_num, start_col + 3).value.strftime('%Y-%m-%d %H:%M') == wtm[
                         'start_time']:
                         worksheet.cell(row_num, start_col, '')
                         worksheet.cell(row_num, start_col + 1, '')
@@ -344,7 +344,7 @@ def wtms2cdf():
             if this_month and worksheet.cell(row_num, start_col).value in [None, '']:
                 if wtm_type == '故障':
                     worksheet.cell(row_num, start_col,
-                                   'A' + str(wtm.wt_id) + '  ' + str(WT.query.filter_by(id=wtm.wt_id).first().dcode))
+                                   'A' + str(wtm.wt_id) + ' ' + str(WT.query.filter_by(id=wtm.wt_id).first().dcode))
                     worksheet.cell(row_num, start_col + 1, gzp.error_code)
                     worksheet.cell(row_num, start_col + 2, gzp.task)
                     worksheet.cell(row_num, start_col + 4, wtm.stop_time)
@@ -353,7 +353,7 @@ def wtms2cdf():
                     worksheet.cell(row_num, start_col + 7, wtm.lost_power)
                     # worksheet.cell(row_num, start_col+2, gzp.error_code)
                 else:
-                    worksheet.cell(row_num, start_col, 'A' + str(wtm.wt_id) + '  ' + str(
+                    worksheet.cell(row_num, start_col, 'A' + str(wtm.wt_id) + ' ' + str(
                         WT.query.filter_by(id=wtm.wt_id).first().dcode))
                     worksheet.cell(row_num, start_col + 1, '其他')
                     worksheet.cell(row_num, start_col + 2, gzp.task)
@@ -400,7 +400,7 @@ def change_cdf():
                             wtms_pre[index][
                                 'start_time']:
                         worksheet.cell(row_num, start_col,
-                                       'A' + str(wtm['wt_id']) + '  ' + str(
+                                       'A' + str(wtm['wt_id']) + ' ' + str(
                                            WT.query.filter_by(id=wtm['wt_id']).first().dcode))
                         worksheet.cell(row_num, start_col + 1, data['new']['error_code'])
                         worksheet.cell(row_num, start_col + 2, data['new']['task'])
@@ -417,7 +417,7 @@ def change_cdf():
                             and worksheet.cell(row_num, start_col + 5).value.strftime('%Y-%m-%d %H:%M') == \
                             wtms_pre[index][
                                 'start_time']:
-                        worksheet.cell(row_num, start_col, 'A' + str(wtm['wt_id']) + '  ' + str(
+                        worksheet.cell(row_num, start_col, 'A' + str(wtm['wt_id']) + ' ' + str(
                             WT.query.filter_by(id=wtm['wt_id']).first().dcode))
                         worksheet.cell(row_num, start_col + 1, '其他')
                         worksheet.cell(row_num, start_col + 2, data['new']['task'])
