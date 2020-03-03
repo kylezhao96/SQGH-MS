@@ -8,6 +8,7 @@ from sqlalchemy import or_
 
 OMS_PATH = "C:\\Users\\Kyle\\Desktop\\2020年OMS日报.xlsx"
 TY_PATH = "C:\\Users\\Kyle\\Desktop\\石桥风电场报送每日风机电量风速统计表 2020.xlsx"
+EXCEL_PATH = "C:\\Users\\Kyle\\Desktop\\2020年石桥风电场日报表.xlsx"
 
 
 def realRound(d, n=0):

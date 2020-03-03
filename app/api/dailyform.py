@@ -13,9 +13,8 @@ from sqlalchemy import or_
 from app import db
 from app.api import bp
 from app.models import CalDailyForm, WTMaintain, PowerCut
-from app.tool.tool import realRound, DecimalEncoder, OMS_PATH, get_stop_time, get_lost_power, TY_PATH, get_num
+from app.tool.tool import realRound, DecimalEncoder, OMS_PATH, get_stop_time, get_lost_power, TY_PATH, get_num,EXCEL_PATH
 
-EXCEL_PATH = "C:\\Users\\Kyle\\Desktop\\2020年石桥风电场日报表.xlsx"
 
 
 def save_excel(path):
