@@ -18,7 +18,7 @@ from app import db
 from app.api import bp
 from app.api.errors import bad_request
 from app.models import DailyTask, MonthlyTask
-from app.tool.tool import realRound
+from app.tool.tool import realRound, driverLoc, EXCEL_PATH
 
 # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(message)s')
 today = datetime.date.today()
@@ -127,7 +127,6 @@ def submit_jtrb():
     day = today.strftime('%d')
     year = today.strftime('%y')
     val = readExcel()
-    driverLoc = "D:\submitTable\driver\IEDriverServer.exe"  # 注意在此配置IE驱动位置
     broswer = webdriver.Ie(driverLoc)
     # broswer.get("http://10.82.1.60/")
     broswer.get("http://10.82.1.60:8082/Rum-web/login.jsp")
@@ -136,7 +135,7 @@ def submit_jtrb():
             EC.title_contains('国家能源集团数据报送平台')
         )
     except:
-        logging.debug('请检查是否登录VPN')
+        logging.debug('请检查网络状态')
         broswer.quit()
     un = broswer.find_element_by_id('username')
     un.clear()
@@ -258,9 +257,8 @@ def readExcel():  # 读取日报表
     val = []  # 定义返回值
     # os.chdir('C:\\Users\\Kyle\\Desktop') #更改当前目录
     # dataLoc = 'C:\\Users\\kylez\\Desktop'
-    dataLoc = 'C:\\Users\\Administrator\\Desktop\\1报表文件夹\\日报表\\2020年'
-    os.chdir(dataLoc)
-    wb = openpyxl.load_workbook("2020年石桥风电场日报表.xlsx", data_only=True, read_only=True)
+
+    wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True, read_only=True)
     rowNum = calRowNum()
     rbjs = wb.get_sheet_by_name('日报计算表')
     jtgs = wb.get_sheet_by_name('集团公司报表')
