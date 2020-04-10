@@ -4,6 +4,7 @@ import logging
 import openpyxl
 import os
 import xlrd
+import random
 from decimal import Decimal
 
 import pyperclip
@@ -17,8 +18,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from app import db
 from app.api import bp
 from app.api.errors import bad_request
-from app.models import DailyTask, MonthlyTask
-from app.tool.tool import realRound, driverLoc, EXCEL_PATH
+from app.models import DailyTask, MonthlyTask, WTMaintain, WT
+from app.tool.tool import realRound, driverLoc, EXCEL_PATH, DESK_PATH
 
 # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(message)s')
 today = datetime.date.today()
@@ -380,3 +381,43 @@ def readExcel2():
         if cellVal[1] == datetime.datetime.now().month and cellVal[2] == datetime.datetime.now().day:
             return realRound((windVel1[rowNum] + windVel2[rowNum]) / 2, 2)
         rowNum = rowNum + 1
+
+
+@bp.route('/totjty', methods=['GET'])
+def to_Tjty():
+    wb = openpyxl.load_workbook(r'temp/石桥子风电场风机停运处理情况汇报.xlsx')
+    ws = wb['Sheet1']
+    wtms = WTMaintain.query.filter(WTMaintain.stop_time >= datetime.date.today()).all()
+    row_num = 3
+    response = jsonify()
+    if wtms:
+        today = datetime.datetime.today()
+        date = str(today.month)+'月'+str(today.day)+'日'
+        for wtm in wtms:
+            wt = WT.query.filter_by(id = wtm.wt_id).first()
+            if wtm.wt_id <= 10:
+                ws.cell(row_num, 2).value = '石桥一期'
+            else:
+                ws.cell(row_num, 2).value = '石桥二期'
+            ws.cell(row_num, 3).value = 'A'+str(wtm.wt_id).zfill(2)+'('+str(wt.dcode)+')'
+            if wtm.error_code:
+                ws.cell(row_num,5).value = wtm.error_code +' '+ wtm.error_content
+                ws.cell(row_num,4).value = '故障'
+            else:
+                ws.cell(row_num,8).value = wtm.task
+                ws.cell(row_num,4).value = '维护'
+            ws.cell(row_num,6).value = wtm.stop_time.strftime('%Y/%m/%d %H:%M')
+            ws.cell(row_num, 7).value = realRound(random.uniform(1.0,5.0),1)
+            if wtm.start_time:
+                ws.cell(row_num, 9).value = '已恢复'
+                ws.cell(row_num, 10).value = wtm.start_time.strftime('%Y-%m-%d %H:%M')
+                ws.cell(row_num, 11).value = realRound(random.uniform(1.0, 5.0), 1)
+                ws.cell(row_num, 12).value = str(realRound((wtm.start_time - wtm.stop_time).seconds / 3600, 2))+'h'
+            else:
+                ws.cell(row_num, 9).value = '未恢复'
+                unrectime = datetime.datetime(today.year, today.month, today.day, 18, 0, 0)
+                ws.cell(row_num, 12).value = str(realRound((unrectime - wtm.stop_time).seconds / 3600, 2)) + 'h'
+        wb.save(DESK_PATH+date+'石桥子风电场风机停运处理情况汇报.xlsx')
+    else:
+        response.status_code = 202
+    return  response

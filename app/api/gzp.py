@@ -80,20 +80,23 @@ def get_gzps():
         index = 0
         for wt in item.wts:
             wtms.append({})
-            if item.wtms.all():
-                for wtm in item.wtms:
-                    if wt.id == wtm.wt_id:
-                        wtms[index] = {
-                            'wt_id': wt.id,
-                            'stop_time': datetime.datetime.strftime(wtm.stop_time, '%Y-%m-%d %H:%M'),
-                            'start_time': '' if not wtm.start_time else datetime.datetime.strftime(wtm.start_time,
-                                                                                                   '%Y-%m-%d %H:%M'),
-                            'lost_power': wtm.lost_power,
-                            'time': wtm.time
-                        }
+            if WTMaintain.query.filter_by(gzp_id = item.gzp_id, wt_id = wt.id).first():
+                wtm = WTMaintain.query.filter_by(gzp_id = item.gzp_id, wt_id = wt.id).first()
+                wtms[index] = {
+                    'wt_id': wt.id,
+                    'stop_time': datetime.datetime.strftime(wtm.stop_time, '%Y-%m-%d %H:%M'),
+                    'start_time': '' if not wtm.start_time else datetime.datetime.strftime(wtm.start_time,
+                                                                                           '%Y-%m-%d %H:%M'),
+                    'lost_power': wtm.lost_power,
+                    'time': wtm.time
+                }
             else:
                 wtms[index] = {
                     'wt_id': wt.id,
+                    'stop_time': '',
+                    'start_time': '',
+                    'lost_power': '',
+                    'time': ''
                 }
             wts = wts + 'A' + str(wt.id) + '，'
             index = index + 1
@@ -108,8 +111,9 @@ def get_gzps():
             'pstop_time': datetime.datetime.strftime(item.pstop_time, '%Y-%m-%d %H:%M'),
             'wtms': wtms,
             'is_end': item.is_end,
-            'error_code': item.error_code
         }
+        if item.error_code:
+            x['error_code'] = item.error_code
         data.append(x)
         index = index + 1
     print(data)
@@ -190,8 +194,8 @@ def del_gzp_cdf():
                         response.status_code = 200  # 代表找到
                         break
                 else:
-                    if worksheet.cell(row_num, start_col + 2).value.strftime('%Y-%m-%d %H:%M') == wtm['stop_time'] \
-                            and worksheet.cell(row_num, start_col + 3).value.strftime('%Y-%m-%d %H:%M') == wtm[
+                    if worksheet.cell(row_num, start_col + 3).value.strftime('%Y-%m-%d %H:%M') == wtm['stop_time'] \
+                            and worksheet.cell(row_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == wtm[
                         'start_time']:
                         worksheet.cell(row_num, start_col, '')
                         worksheet.cell(row_num, start_col + 1, '')
@@ -202,7 +206,11 @@ def del_gzp_cdf():
                         worksheet.cell(row_num, start_col + 6, '')
                         response.status_code = 200  # 代表找到
                         break
-    workbook.save(EXCEL_PATH)
+    if response.status_code == 200:
+        try:
+            workbook.save(EXCEL_PATH)
+        except IOError:
+            response.status_code = 501
     return response
 
 
@@ -225,8 +233,12 @@ def post_gzp():
         members_temp.append(get_user(member))
     gzp.members = members_temp
     if not pd.isnull(data_gzp.loc[9].values[5]):
-        gzp.error_code = data_gzp.loc[9].values[5]
-        gzp.error_content = re.match(r'(处理)?(\w+)', data_gzp.loc[11].values[10]).group(2)
+        gzp.error_code = re.match(r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(1)
+        if re.match(r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(2):
+            gzp.error_content = re.match(r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(2)
+        else:
+            gzp.error_content = re.match(r'(处理)?(\w+)', data_gzp.loc[11].values[10]).group(2)
+
     gzp_wts_id = list(
         map(lambda x: re.match(r'^(A)(\d+)$', x).group(2), re.findall(re.compile(r'A\d+'), data_gzp.loc[11].values[0])))
     gzp.wts = list(map(lambda x: WT.query.filter_by(id=int(x)).first(), gzp_wts_id))  # wt放在最后
@@ -263,41 +275,41 @@ def wtms2db():
     将风机维护数据写入数据库
     """
     data = request.get_json() or {}
+    gzp = Gzp.query.filter_by(gzp_id=data['id']).first()
     response = jsonify()
     for wtm in data['wtms']:
-        if not WTMaintain.query.filter(WTMaintain.gzp_id == data['id'], WTMaintain.wt_id == wtm['wt_id']).first():
-            wtm_db = WTMaintain()
-        else:
-            wtm_db = WTMaintain.query.filter(WTMaintain.gzp_id == data['id'], WTMaintain.wt_id == wtm['wt_id']).first()
-        wtm_db.wt_id = wtm['wt_id']
-        gzp = Gzp.query.filter_by(gzp_id=data['id']).first()
-        gzp.wtms.append(wtm_db)
-        gzp.is_end = True
-        if gzp.error_code:  # 故障
-            wtm_db.error_code = gzp.error_code
-        else:
-            wtm_db.task = gzp.task
-        stop_time = datetime.datetime.strptime(wtm['stop_time'], '%Y-%m-%d %H:%M')
-        wtm_db.stop_time = datetime.datetime(stop_time.year, stop_time.month, stop_time.day, stop_time.hour,
-                                             stop_time.minute)
-
-        if 'start_time' in wtm.keys():
-            if wtm['start_time']:
-                start_time = datetime.datetime.strptime(wtm['start_time'], '%Y-%m-%d %H:%M')
-                wtm_db.start_time = datetime.datetime(start_time.year, start_time.month, start_time.day, start_time.hour,
-                                                      start_time.minute)
-                wtm_db.time = realRound((wtm_db.start_time - wtm_db.stop_time).seconds / 3600, 2)
-                wtm_db.lost_power = float(wtm['lost_power'])
+        if 'stop_time' in wtm.keys():
+            if not WTMaintain.query.filter(WTMaintain.gzp_id == data['id'], WTMaintain.wt_id == wtm['wt_id']).first():
+                wtm_db = WTMaintain()
+            else:
+                wtm_db = WTMaintain.query.filter(WTMaintain.gzp_id == data['id'], WTMaintain.wt_id == wtm['wt_id']).first()
+            wtm_db.wt_id = wtm['wt_id']
+            gzp.wtms.append(wtm_db)
+            gzp.is_end = True
+            if gzp.error_code:  # 故障
+                wtm_db.error_code = gzp.error_code
+            else:
+                wtm_db.task = gzp.task
+            stop_time = datetime.datetime.strptime(wtm['stop_time'], '%Y-%m-%d %H:%M')
+            wtm_db.stop_time = datetime.datetime(stop_time.year, stop_time.month, stop_time.day, stop_time.hour,
+                                                 stop_time.minute)
+            if 'start_time' in wtm.keys():
+                if wtm['start_time']:
+                    start_time = datetime.datetime.strptime(wtm['start_time'], '%Y-%m-%d %H:%M')
+                    wtm_db.start_time = datetime.datetime(start_time.year, start_time.month, start_time.day, start_time.hour,
+                                                          start_time.minute)
+                    wtm_db.time = realRound((wtm_db.start_time - wtm_db.stop_time).seconds / 3600, 2)
+                    wtm_db.lost_power = float(wtm['lost_power'])
+                else:
+                    gzp.is_end = False
+                    response.status_code = 201
             else:
                 gzp.is_end = False
                 response.status_code = 201
-        else:
-            gzp.is_end = False
-            response.status_code = 201
-        db.session.add(wtm_db)
-        db.session.commit()
-        db.session.add(gzp)
-        db.session.commit()
+            db.session.add(wtm_db)
+            db.session.commit()
+    db.session.add(gzp)
+    db.session.commit()
     return response
 
 
@@ -305,6 +317,7 @@ def wtms2db():
 def wtms2cdf():
     data = request.get_json() or {}
     gzp_id = data['gzp_id']
+    response = jsonify()
     workbook = openpyxl.load_workbook(EXCEL_PATH)
     gzp = Gzp.query.filter_by(gzp_id=gzp_id).first()
     this_month = False
@@ -362,10 +375,10 @@ def wtms2cdf():
                     worksheet.cell(row_num, start_col + 5, wtm.time)
                     worksheet.cell(row_num, start_col + 6, wtm.lost_power)
                 break
-    workbook.save(EXCEL_PATH)
-    response = jsonify()
-    response.status_code = 200
-    # response.headers['Location'] = url_for('api.', id=task.id)
+    try:
+        workbook.save(EXCEL_PATH)
+    except IOError:
+        response.status_code = 501
     return response
 
 
@@ -375,7 +388,8 @@ def change_cdf():
     wtms = data['new']['wtms']
     wtms_pre = data['old']['wtms']
     workbook = openpyxl.load_workbook(EXCEL_PATH)
-    flag = False
+    response = jsonify()
+    response.status_code = 201
     if 'error_code' in data['old']:  # 故障
         wtm_type = '故障'
     else:
@@ -409,12 +423,12 @@ def change_cdf():
                         worksheet.cell(row_num, start_col + 6, realRound((start_time - stop_time).seconds / 3600, 2))
                         worksheet.cell(row_num, start_col + 7, wtm['lost_power'])
                         # worksheet.cell(row_num, start_col+2, gzp.error_code)
-                        flag = True
+                        response.status_code = 200
                         break
                 else:
-                    if worksheet.cell(row_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == wtms_pre[index][
+                    if worksheet.cell(row_num, start_col + 3).value.strftime('%Y-%m-%d %H:%M') == wtms_pre[index][
                         'stop_time'] \
-                            and worksheet.cell(row_num, start_col + 5).value.strftime('%Y-%m-%d %H:%M') == \
+                            and worksheet.cell(row_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == \
                             wtms_pre[index][
                                 'start_time']:
                         worksheet.cell(row_num, start_col, 'A' + str(wtm['wt_id']) + ' ' + str(
@@ -425,10 +439,14 @@ def change_cdf():
                         worksheet.cell(row_num, start_col + 4, start_time)
                         worksheet.cell(row_num, start_col + 5, realRound((start_time - stop_time).seconds / 3600, 2))
                         worksheet.cell(row_num, start_col + 6, wtm['lost_power'])
-                        flag = True
+                        response.status_code = 200
                         break
-    workbook.save(EXCEL_PATH)
-    return jsonify(flag)
+    if response.status_code == 200:
+        try:
+            workbook.save(EXCEL_PATH)
+        except IOError:
+            response.status_code = 501
+    return response
 
 
 @bp.route('/wtmsyn', methods=['GET'])
