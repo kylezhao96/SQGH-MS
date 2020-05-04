@@ -589,7 +589,7 @@ def syn_gzp():
     return jsonify('ok')
 
 
-@bp.route('/gzpbyusers2excel', methods=['GET'])
+@bp.route('/stat2excel', methods=['GET'])
 def gzp_by_users():
     wb = openpyxl.Workbook()
     users = User.query.all()
