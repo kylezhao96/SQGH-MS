@@ -256,9 +256,6 @@ def calRowNum():
 
 def readExcel():  # 读取日报表
     val = []  # 定义返回值
-    # os.chdir('C:\\Users\\Kyle\\Desktop') #更改当前目录
-    # dataLoc = 'C:\\Users\\kylez\\Desktop'
-
     wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True, read_only=True)
     rowNum = calRowNum()
     rbjs = wb.get_sheet_by_name('日报计算表')

@@ -54,6 +54,11 @@ class User(PaginatedAPIMixin, db.Model):
     oa_account = db.Column(db.String(20), unique=True)
     oa_password = db.Column(db.String(100))
 
+    # 关联属性，多对多的情况，可以写在任意一个模型类中
+    gzps = db.relationship('Gzp', secondary=member_gzp,
+                                     backref='relate_gzp',
+                                     lazy='dynamic')
+
     # signed_gzp_id = db.Column(db.Integer, db.ForeignKey("gzp.id"))  # 签发的工作票 外键
     # signed_gzp = db.relationship('Gzp', foreign_keys=[signed_gzp_id])  # 签发的工作票
     #

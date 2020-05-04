@@ -11,8 +11,7 @@ from app import db
 from app.api import bp
 from app.models import WT, WTMaintain, User, Gzp, PowerCut
 from app.api.users import get_user_id, get_user
-from app.tool.tool import realRound
-from app.api.dailyform import EXCEL_PATH
+from app.tool.tool import realRound, EXCEL_PATH
 
 
 @bp.route('/createpc', methods=['POST'])
@@ -184,3 +183,27 @@ def del_pc_cdf():
                 break
     workbook.save(EXCEL_PATH)
     return response
+
+
+@bp.route('/powercuts', methods=['PUT'])
+def dataSyn():
+    """
+    从日报表中同步限电数据
+    return 当日限电数据
+    """
+    df = pd.read_excel(EXCEL_PATH, sheet_name='电网故障、检修、限电统计', usecols=range(17), header=None)
+    df = df[df[0].isin(['一二号集电线'])].values
+    pcs = PowerCut.query.all()
+    db.session.delete(pcs)
+    for item in df:
+        pc = PowerCut()
+        pc.start_time = item[4]
+        pc.stop_time = item[5]
+        pc.time = realRound(item[6],2)
+        pc.lost_power1 = item[7]
+        pc.lost_power2 = item[16]
+        db.session.add(pc)
+    db.session.commit()
+    return get_pcs()
+
+
