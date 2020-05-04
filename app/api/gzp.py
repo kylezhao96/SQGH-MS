@@ -530,7 +530,7 @@ def gzp_syn():
 
 @bp.route('/gzpsyn', methods=['GET'])
 def syn_gzp():
-    path = r'C:\Users\Kyle\Desktop\5OA系统风机工作票'
+    path = r'C:\Users\Administrator\Desktop\5OA系统风机工作票'
     for year_folder in os.listdir(path):
         if re.match(r'\d+年', year_folder):
             for month_folder in os.listdir(path + '\\' + year_folder):

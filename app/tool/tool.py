@@ -6,11 +6,11 @@ from decimal import Decimal, ROUND_HALF_UP
 from app.models import WTMaintain, Gzp
 from sqlalchemy import or_
 
-OMS_PATH = "C:\\Users\\Kyle\\Desktop\\2020年OMS日报.xlsx"
-TY_PATH = "C:\\Users\\Kyle\\Desktop\\石桥风电场报送每日风机电量风速统计表 2020.xlsx"
-EXCEL_PATH = "C:\\Users\\Kyle\\Desktop\\2020年石桥风电场日报表.xlsx"
-driverLoc = "D:\submitTable\driver\IEDriverServer.exe"
-DESK_PATH = "C:\\Users\\Kyle\\Desktop\\"
+OMS_PATH = r"C:\Users\Administrator\Desktop\1报表文件夹\日报表\2020年\2020年OMS日报.xlsx"
+TY_PATH = r"C:\Users\Administrator\Desktop\1报表文件夹\每日00：30前石桥风电场每日风机电量、风速统计表报送诸城桃园风场公共邮箱\2020年\石桥风电场报送每日风机电量风速统计表 2020.xlsx"
+EXCEL_PATH = r"C:\Users\Administrator\Desktop\1报表文件夹\日报表\2020年\2020年石桥风电场日报表.xlsx"
+driverLoc = r"D:\submitTable\driver\IEDriverServer.exe"
+DESK_PATH = "C:\\Users\\Administrator\\Desktop\\"
 
 def realRound(d, n=0):
     format = '0.'
