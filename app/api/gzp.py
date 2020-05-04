@@ -250,18 +250,18 @@ def post_gzp():
     gzp.pstop_time = datetime.datetime(data_gzp.loc[16].values[2], data_gzp.loc[16].values[4],
                                        data_gzp.loc[16].values[6], data_gzp.loc[16].values[8],
                                        data_gzp.loc[16].values[10])
-    start_flag = 20
-    while True:  # flag 指向签发行
-        if data_gzp.loc[start_flag].values[0] == '8、签发人签名':
-            break
-        start_flag = start_flag + 1
-    gzp.sign_person = get_user(data_gzp.loc[start_flag].values[2])
-    sign_time_year = data_gzp.loc[start_flag].values[7]
-    sign_time_month = data_gzp.loc[start_flag].values[9]
-    sign_time_day = data_gzp.loc[start_flag].values[11]
-    sign_time_hour = data_gzp.loc[start_flag].values[13]
-    sign_time_minutes = data_gzp.loc[start_flag].values[15]
-    gzp.sign_time = datetime.datetime(sign_time_year, sign_time_month, sign_time_day, sign_time_hour, sign_time_minutes)
+    # start_flag = 20
+    # while True:  # flag 指向签发行
+    #     if data_gzp.loc[start_flag].values[0] == '8、签发人签名':
+    #         break
+    #     start_flag = start_flag + 1
+    # gzp.sign_person = get_user(data_gzp.loc[start_flag].values[2])
+    # sign_time_year = data_gzp.loc[start_flag].values[7]
+    # sign_time_month = data_gzp.loc[start_flag].values[9]
+    # sign_time_day = data_gzp.loc[start_flag].values[11]
+    # sign_time_hour = data_gzp.loc[start_flag].values[13]
+    # sign_time_minutes = data_gzp.loc[start_flag].values[15]
+    # gzp.sign_time = datetime.datetime(sign_time_year, sign_time_month, sign_time_day, sign_time_hour, sign_time_minutes)
     db.session.add(gzp)
     db.session.commit()
 
@@ -526,3 +526,116 @@ def gzp_syn():
             db.session.add(wtm)
             db.session.commit()
     return jsonify({})
+
+
+@bp.route('/gzpsyn', methods=['GET'])
+def syn_gzp():
+    path = r'C:\Users\Kyle\Desktop\5OA系统风机工作票'
+    for year_folder in os.listdir(path):
+        if re.match(r'\d+年', year_folder):
+            for month_folder in os.listdir(path + '\\' + year_folder):
+                if not re.match('\.\S+', month_folder):
+                    for gzp in os.listdir(path + '\\' + year_folder + '\\' + month_folder):
+                        if re.match(r'风机检修工作票', gzp):
+                            data_gzp = pd.read_excel(path + '\\' + year_folder + '\\' + month_folder + '\\' + gzp)  # 读取
+                            if not Gzp.query.filter_by(gzp_id=data_gzp.loc[1].values[13]).first():
+                                gzp = Gzp()
+                            else:
+                                gzp = Gzp.query.filter_by(gzp_id=data_gzp.loc[1].values[13]).first()
+                            # 以下开始对各项数据进行读取
+                            gzp.firm = data_gzp.loc[1].values[1]
+                            gzp.gzp_id = data_gzp.loc[1].values[13]
+                            gzp.manage_person = get_user(data_gzp.loc[3].values[4])
+                            members = re.split("\W+", data_gzp.loc[6].values[0])
+                            members_temp = []
+                            for member in members:
+                                members_temp.append(get_user(member))
+                            gzp.members = members_temp
+                            if not pd.isnull(data_gzp.loc[9].values[5]):
+                                gzp.error_code = re.match(r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(1)
+                                if re.match(r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(2):
+                                    gzp.error_content = re.match(r'^(SC\d+_\d+_\d+)(\w+)?$',
+                                                                 data_gzp.loc[9].values[5]).group(2)
+                                else:
+                                    gzp.error_content = re.match(r'(处理)?(\w+)', data_gzp.loc[11].values[10]).group(2)
+
+                            gzp_wts_id = list(
+                                map(lambda x: re.match(r'^(A)(\d+)$', x).group(2),
+                                    re.findall(re.compile(r'A\d+'), data_gzp.loc[11].values[0])))
+                            gzp.wts = list(map(lambda x: WT.query.filter_by(id=int(x)).first(), gzp_wts_id))  # wt放在最后
+                            gzp.postion = data_gzp.loc[11].values[5]
+                            gzp.task = data_gzp.loc[11].values[10]
+                            gzp.pstart_time = datetime.datetime(data_gzp.loc[15].values[2], data_gzp.loc[15].values[4],
+                                                                data_gzp.loc[15].values[6], data_gzp.loc[15].values[8],
+                                                                data_gzp.loc[15].values[10])
+                            gzp.pstop_time = datetime.datetime(data_gzp.loc[16].values[2], data_gzp.loc[16].values[4],
+                                                               data_gzp.loc[16].values[6], data_gzp.loc[16].values[8],
+                                                               data_gzp.loc[16].values[10])
+                            # start_flag = 20
+                            # while True:  # flag 指向签发行
+                            #     if data_gzp.loc[start_flag].values[0] == '8、签发人签名':
+                            #         break
+                            #     start_flag = start_flag + 1
+                            # gzp.sign_person = get_user(data_gzp.loc[start_flag].values[2])
+                            # sign_time_year = data_gzp.loc[start_flag].values[7]
+                            # sign_time_month = data_gzp.loc[start_flag].values[9]
+                            # sign_time_day = data_gzp.loc[start_flag].values[11]
+                            # sign_time_hour = data_gzp.loc[start_flag].values[13]
+                            # sign_time_minutes = data_gzp.loc[start_flag].values[15]
+                            # gzp.sign_time = datetime.datetime(sign_time_year, sign_time_month, sign_time_day,
+                            #                                   sign_time_hour, sign_time_minutes)
+                            db.session.add(gzp)
+    db.session.commit()
+    return jsonify('ok')
+
+
+@bp.route('/gzpbyusers2excel', methods=['GET'])
+def gzp_by_users():
+    wb = openpyxl.Workbook()
+    users = User.query.all()
+    ft = openpyxl.styles.Font(bold=True)
+    alignment = openpyxl.styles.Alignment(horizontal='center',
+                                          # 水平'center', 'centerContinuous', 'justify', 'fill', 'general', 'distributed', 'left', 'right'
+                                          vertical='center',  # 垂直'distributed', 'bottom', 'top', 'center', 'justify'
+                                          text_rotation=0,  # 旋转角度0~180
+                                          wrap_text=True,  # 文字换行
+                                          shrink_to_fit=False,  # 自适应宽度，改变文字大小,上一项false
+                                          indent=0)
+    for user in users:
+        # 工作班成员
+        if len(user.gzps.all()):
+            wb.create_sheet(title=user.name)
+            ws = wb[user.name]
+            ws.column_dimensions['A'].width =25
+            ws.cell(1,1).value = '票号'
+            ws.column_dimensions['B'].width = 15
+            ws.cell(1,2).value = '时间'
+            ws.column_dimensions['C'].width = 20
+            ws.cell(1,3).value = '风机号'
+            ws.column_dimensions['D'].width = 40
+            ws.cell(1,4).value = '工作内容'
+            ws.column_dimensions['D'].width = 20
+            ws.cell(1,5).value = '工作负责人'
+            row_num = 2
+            for gzp in user.gzps.all()+Gzp.query.filter(Gzp.manage_person == user).all():
+                ws.cell(row_num, 1).value = gzp.gzp_id
+                ws.cell(row_num, 2).value = gzp.pstart_time.date()
+                wts = ''
+                for wt in gzp.wts:
+                    wts = wts+'A'+str(wt.id)+'、'
+                wts = wts[:-1]
+                ws.cell(row_num, 3).value = wts
+                ws.cell(row_num, 4).value = gzp.task
+                ws.cell(row_num, 5).value = gzp.manage_person.name
+                for irow,row in enumerate(ws.rows, start=1):
+                    for cell in row:
+                        cell.alignment = alignment
+                        if irow == 1:
+                            cell.font = ft
+                row_num = row_num + 1
+    ws = wb['Sheet']
+    wb.remove(ws)
+    wb.save(r'C:\Users\Kyle\Desktop\工作票工作成员统计.xlsx')
+    return jsonify({})
+
+
