@@ -14,7 +14,7 @@ from app import db
 from app.api import bp
 from app.models import WT, WTMaintain, User, Gzp
 from app.api.users import get_user_id, get_user
-from app.tool.tool import realRound
+from app.tool.tool import realRound, DESK_PATH
 from app.api.dailyform import EXCEL_PATH
 
 
@@ -36,9 +36,11 @@ def create_wtm():
         db.session.commit()
         gzp.manage_person_id = manager.id
     else:
-        gzp.manage_person_id = User.query.filter_by(name=data['manager']).first().id
+        gzp.manage_person_id = User.query.filter_by(
+            name=data['manager']).first().id
     wt_regex = re.compile(r'A(\d){,2}')
-    gzp.wt_id = WT.query.filter_by(id=wt_regex.search(data['wt'][1]).group(1)).first().id
+    gzp.wt_id = WT.query.filter_by(
+        id=wt_regex.search(data['wt'][1]).group(1)).first().id
     gzp.task = data['task']
     wtm.type = data['type']
     # wtm.allow_time = datetime.datetime.fromtimestamp(data['allow_time']/1000)
@@ -80,8 +82,9 @@ def get_gzps():
         index = 0
         for wt in item.wts:
             wtms.append({})
-            if WTMaintain.query.filter_by(gzp_id = item.gzp_id, wt_id = wt.id).first():
-                wtm = WTMaintain.query.filter_by(gzp_id = item.gzp_id, wt_id = wt.id).first()
+            if WTMaintain.query.filter_by(gzp_id=item.gzp_id, wt_id=wt.id).first():
+                wtm = WTMaintain.query.filter_by(
+                    gzp_id=item.gzp_id, wt_id=wt.id).first()
                 wtms[index] = {
                     'wt_id': wt.id,
                     'stop_time': datetime.datetime.strftime(wtm.stop_time, '%Y-%m-%d %H:%M'),
@@ -176,34 +179,34 @@ def del_gzp_cdf():
             start_col = 11
         else:
             start_col = 9
-        for row_num in range(1, worksheet.max_row):
-            if type(worksheet.cell(row_num, start_col + 4).value) == datetime.datetime:  # 判断为时间类型才进入循环
+        for col_num in range(1, worksheet.max_row):
+            if type(worksheet.cell(col_num, start_col + 4).value) == datetime.datetime:  # 判断为时间类型才进入循环
                 if wtm_type == '故障':
-                    if worksheet.cell(row_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == wtm['stop_time'] \
-                            and worksheet.cell(row_num, start_col + 5).value.strftime('%Y-%m-%d %H:%M') == wtm[
-                        'start_time']:
-                        worksheet.cell(row_num, start_col, '')
-                        worksheet.cell(row_num, start_col + 1, '')
-                        worksheet.cell(row_num, start_col + 2, '')
-                        worksheet.cell(row_num, start_col + 3, '')
-                        worksheet.cell(row_num, start_col + 4, '')
-                        worksheet.cell(row_num, start_col + 5, '')
-                        worksheet.cell(row_num, start_col + 6, '')
-                        worksheet.cell(row_num, start_col + 7, '')
-                        worksheet.cell(row_num, start_col + 8, '')
+                    if worksheet.cell(col_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == wtm['stop_time'] \
+                        and worksheet.cell(col_num, start_col + 5).value.strftime('%Y-%m-%d %H:%M') == wtm[
+                            'start_time']:
+                        worksheet.cell(col_num, start_col, '')
+                        worksheet.cell(col_num, start_col + 1, '')
+                        worksheet.cell(col_num, start_col + 2, '')
+                        worksheet.cell(col_num, start_col + 3, '')
+                        worksheet.cell(col_num, start_col + 4, '')
+                        worksheet.cell(col_num, start_col + 5, '')
+                        worksheet.cell(col_num, start_col + 6, '')
+                        worksheet.cell(col_num, start_col + 7, '')
+                        worksheet.cell(col_num, start_col + 8, '')
                         response.status_code = 200  # 代表找到
                         break
                 else:
-                    if worksheet.cell(row_num, start_col + 3).value.strftime('%Y-%m-%d %H:%M') == wtm['stop_time'] \
-                            and worksheet.cell(row_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == wtm[
-                        'start_time']:
-                        worksheet.cell(row_num, start_col, '')
-                        worksheet.cell(row_num, start_col + 1, '')
-                        worksheet.cell(row_num, start_col + 2, '')
-                        worksheet.cell(row_num, start_col + 3, '')
-                        worksheet.cell(row_num, start_col + 4, '')
-                        worksheet.cell(row_num, start_col + 5, '')
-                        worksheet.cell(row_num, start_col + 6, '')
+                    if worksheet.cell(col_num, start_col + 3).value.strftime('%Y-%m-%d %H:%M') == wtm['stop_time'] \
+                        and worksheet.cell(col_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == wtm[
+                            'start_time']:
+                        worksheet.cell(col_num, start_col, '')
+                        worksheet.cell(col_num, start_col + 1, '')
+                        worksheet.cell(col_num, start_col + 2, '')
+                        worksheet.cell(col_num, start_col + 3, '')
+                        worksheet.cell(col_num, start_col + 4, '')
+                        worksheet.cell(col_num, start_col + 5, '')
+                        worksheet.cell(col_num, start_col + 6, '')
                         response.status_code = 200  # 代表找到
                         break
     if response.status_code == 200:
@@ -233,23 +236,27 @@ def post_gzp():
         members_temp.append(get_user(member))
     gzp.members = members_temp
     if not pd.isnull(data_gzp.loc[9].values[5]):
-        gzp.error_code = re.match(r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(1)
+        gzp.error_code = re.match(
+            r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(1)
         if re.match(r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(2):
-            gzp.error_content = re.match(r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(2)
+            gzp.error_content = re.match(
+                r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(2)
         else:
-            gzp.error_content = re.match(r'(处理)?(\w+)', data_gzp.loc[11].values[10]).group(2)
+            gzp.error_content = re.match(
+                r'(处理)?(\w+)', data_gzp.loc[11].values[10]).group(2)
 
     gzp_wts_id = list(
         map(lambda x: re.match(r'^(A)(\d+)$', x).group(2), re.findall(re.compile(r'A\d+'), data_gzp.loc[11].values[0])))
-    gzp.wts = list(map(lambda x: WT.query.filter_by(id=int(x)).first(), gzp_wts_id))  # wt放在最后
+    gzp.wts = list(map(lambda x: WT.query.filter_by(
+        id=int(x)).first(), gzp_wts_id))  # wt放在最后
     gzp.postion = data_gzp.loc[11].values[5]
     gzp.task = data_gzp.loc[11].values[10]
-    gzp.pstart_time = datetime.datetime(data_gzp.loc[15].values[2], data_gzp.loc[15].values[4],
-                                        data_gzp.loc[15].values[6], data_gzp.loc[15].values[8],
-                                        data_gzp.loc[15].values[10])
-    gzp.pstop_time = datetime.datetime(data_gzp.loc[16].values[2], data_gzp.loc[16].values[4],
-                                       data_gzp.loc[16].values[6], data_gzp.loc[16].values[8],
-                                       data_gzp.loc[16].values[10])
+    gzp.pstart_time = datetime.datetime(data_gzp.loc[index+1].values[2], data_gzp.loc[index+1].values[4],
+                                        data_gzp.loc[index+1].values[6], data_gzp.loc[index+1].values[8],
+                                        data_gzp.loc[index+1].values[10])
+    gzp.pstop_time = datetime.datetime(data_gzp.loc[index+2].values[2], data_gzp.loc[index+2].values[4],
+                                       data_gzp.loc[index+2].values[6], data_gzp.loc[index+2].values[8],
+                                       data_gzp.loc[index+2].values[10])
     # start_flag = 20
     # while True:  # flag 指向签发行
     #     if data_gzp.loc[start_flag].values[0] == '8、签发人签名':
@@ -260,7 +267,7 @@ def post_gzp():
     # sign_time_month = data_gzp.loc[start_flag].values[9]
     # sign_time_day = data_gzp.loc[start_flag].values[11]
     # sign_time_hour = data_gzp.loc[start_flag].values[13]
-    # sign_time_minutes = data_gzp.loc[start_flag].values[15]
+    # sign_time_minutes = data_gzp.loc[start_flag].values[index+1]
     # gzp.sign_time = datetime.datetime(sign_time_year, sign_time_month, sign_time_day, sign_time_hour, sign_time_minutes)
     db.session.add(gzp)
     db.session.commit()
@@ -282,7 +289,8 @@ def wtms2db():
             if not WTMaintain.query.filter(WTMaintain.gzp_id == data['id'], WTMaintain.wt_id == wtm['wt_id']).first():
                 wtm_db = WTMaintain()
             else:
-                wtm_db = WTMaintain.query.filter(WTMaintain.gzp_id == data['id'], WTMaintain.wt_id == wtm['wt_id']).first()
+                wtm_db = WTMaintain.query.filter(
+                    WTMaintain.gzp_id == data['id'], WTMaintain.wt_id == wtm['wt_id']).first()
             wtm_db.wt_id = wtm['wt_id']
             gzp.wtms.append(wtm_db)
             gzp.is_end = True
@@ -290,15 +298,18 @@ def wtms2db():
                 wtm_db.error_code = gzp.error_code
             else:
                 wtm_db.task = gzp.task
-            stop_time = datetime.datetime.strptime(wtm['stop_time'], '%Y-%m-%d %H:%M')
+            stop_time = datetime.datetime.strptime(
+                wtm['stop_time'], '%Y-%m-%d %H:%M')
             wtm_db.stop_time = datetime.datetime(stop_time.year, stop_time.month, stop_time.day, stop_time.hour,
                                                  stop_time.minute)
             if 'start_time' in wtm.keys():
                 if wtm['start_time']:
-                    start_time = datetime.datetime.strptime(wtm['start_time'], '%Y-%m-%d %H:%M')
+                    start_time = datetime.datetime.strptime(
+                        wtm['start_time'], '%Y-%m-%d %H:%M')
                     wtm_db.start_time = datetime.datetime(start_time.year, start_time.month, start_time.day, start_time.hour,
                                                           start_time.minute)
-                    wtm_db.time = realRound((wtm_db.start_time - wtm_db.stop_time).seconds / 3600, 2)
+                    wtm_db.time = realRound(
+                        (wtm_db.start_time - wtm_db.stop_time).seconds / 3600, 2)
                     wtm_db.lost_power = float(wtm['lost_power'])
                 else:
                     gzp.is_end = False
@@ -335,45 +346,52 @@ def wtms2cdf():
             start_col = 11
         else:
             start_col = 9
-        for row_num in range(1, worksheet.max_row):
+        for col_num in range(1, worksheet.max_row):
             month = wtm.stop_time.month
-            if row_num == flag:
+            if col_num == flag:
                 continue
-            if re.findall(r'石桥一期(\d)月风机' + wtm_type + '统计', str(worksheet.cell(row_num, 1).value)):
-                if str(month) == re.findall(r'石桥一期(\d)月风机' + wtm_type + '统计', worksheet.cell(row_num, 1).value)[0]:
+            if re.findall(r'石桥一期(\d)月风机' + wtm_type + '统计', str(worksheet.cell(col_num, 1).value)):
+                if str(month) == re.findall(r'石桥一期(\d)月风机' + wtm_type + '统计', worksheet.cell(col_num, 1).value)[0]:
                     #  定位到当月标题
                     this_month = True
-                    flag = row_num + 1
-            if this_month and worksheet.cell(row_num, 1).value == '合计':
-                worksheet.insert_rows(row_num, amount=1)  # 若没有空行了，插入一行
+                    flag = col_num + 1
+            if this_month and worksheet.cell(col_num, 1).value == '合计':
+                worksheet.insert_rows(col_num, amount=1)  # 若没有空行了，插入一行
                 for x in range(1, 20):  # 复制样式
-                    worksheet.cell(row_num, x)._style = copy(worksheet.cell(row_num - 1, x)._style)
-                    worksheet.cell(row_num, x).font = copy(worksheet.cell(row_num - 1, x).font)
-                    worksheet.cell(row_num, x).border = copy(worksheet.cell(row_num - 1, x).border)
-                    worksheet.cell(row_num, x).fill = copy(worksheet.cell(row_num - 1, x).fill)
-                    worksheet.cell(row_num, x).number_format = copy(worksheet.cell(row_num - 1, x).number_format)
-                    worksheet.cell(row_num, x).protection = copy(worksheet.cell(row_num - 1, x).protection)
-                    worksheet.cell(row_num, x).alignment = copy(worksheet.cell(row_num - 1, x).alignment)
-            if this_month and worksheet.cell(row_num, start_col).value in [None, '']:
+                    worksheet.cell(col_num, x)._style = copy(
+                        worksheet.cell(col_num - 1, x)._style)
+                    worksheet.cell(col_num, x).font = copy(
+                        worksheet.cell(col_num - 1, x).font)
+                    worksheet.cell(col_num, x).border = copy(
+                        worksheet.cell(col_num - 1, x).border)
+                    worksheet.cell(col_num, x).fill = copy(
+                        worksheet.cell(col_num - 1, x).fill)
+                    worksheet.cell(col_num, x).number_format = copy(
+                        worksheet.cell(col_num - 1, x).number_format)
+                    worksheet.cell(col_num, x).protection = copy(
+                        worksheet.cell(col_num - 1, x).protection)
+                    worksheet.cell(col_num, x).alignment = copy(
+                        worksheet.cell(col_num - 1, x).alignment)
+            if this_month and worksheet.cell(col_num, start_col).value in [None, '']:
                 if wtm_type == '故障':
-                    worksheet.cell(row_num, start_col,
+                    worksheet.cell(col_num, start_col,
                                    'A' + str(wtm.wt_id) + ' ' + str(WT.query.filter_by(id=wtm.wt_id).first().dcode))
-                    worksheet.cell(row_num, start_col + 1, gzp.error_code)
-                    worksheet.cell(row_num, start_col + 2, gzp.task)
-                    worksheet.cell(row_num, start_col + 4, wtm.stop_time)
-                    worksheet.cell(row_num, start_col + 5, wtm.start_time)
-                    worksheet.cell(row_num, start_col + 6, wtm.time)
-                    worksheet.cell(row_num, start_col + 7, wtm.lost_power)
-                    # worksheet.cell(row_num, start_col+2, gzp.error_code)
+                    worksheet.cell(col_num, start_col + 1, gzp.error_code)
+                    worksheet.cell(col_num, start_col + 2, gzp.task)
+                    worksheet.cell(col_num, start_col + 4, wtm.stop_time)
+                    worksheet.cell(col_num, start_col + 5, wtm.start_time)
+                    worksheet.cell(col_num, start_col + 6, wtm.time)
+                    worksheet.cell(col_num, start_col + 7, wtm.lost_power)
+                    # worksheet.cell(col_num, start_col+2, gzp.error_code)
                 else:
-                    worksheet.cell(row_num, start_col, 'A' + str(wtm.wt_id) + ' ' + str(
+                    worksheet.cell(col_num, start_col, 'A' + str(wtm.wt_id) + ' ' + str(
                         WT.query.filter_by(id=wtm.wt_id).first().dcode))
-                    worksheet.cell(row_num, start_col + 1, '其他')
-                    worksheet.cell(row_num, start_col + 2, gzp.task)
-                    worksheet.cell(row_num, start_col + 3, wtm.stop_time)
-                    worksheet.cell(row_num, start_col + 4, wtm.start_time)
-                    worksheet.cell(row_num, start_col + 5, wtm.time)
-                    worksheet.cell(row_num, start_col + 6, wtm.lost_power)
+                    worksheet.cell(col_num, start_col + 1, '其他')
+                    worksheet.cell(col_num, start_col + 2, gzp.task)
+                    worksheet.cell(col_num, start_col + 3, wtm.stop_time)
+                    worksheet.cell(col_num, start_col + 4, wtm.start_time)
+                    worksheet.cell(col_num, start_col + 5, wtm.time)
+                    worksheet.cell(col_num, start_col + 6, wtm.lost_power)
                 break
     try:
         workbook.save(EXCEL_PATH)
@@ -396,8 +414,10 @@ def change_cdf():
         wtm_type = '维护'
     worksheet = workbook['风机' + wtm_type + '统计']
     for index, wtm in enumerate(wtms):
-        stop_time = datetime.datetime.strptime(wtm['stop_time'], '%Y-%m-%d %H:%M')
-        start_time = datetime.datetime.strptime(wtm['start_time'], '%Y-%m-%d %H:%M')
+        stop_time = datetime.datetime.strptime(
+            wtm['stop_time'], '%Y-%m-%d %H:%M')
+        start_time = datetime.datetime.strptime(
+            wtm['start_time'], '%Y-%m-%d %H:%M')
         if wtm['wt_id'] <= 20:  # 一号线
             #  在此写入
             start_col = 1
@@ -405,40 +425,47 @@ def change_cdf():
             start_col = 11
         else:
             start_col = 9
-        for row_num in range(1, worksheet.max_row):
-            if type(worksheet.cell(row_num, start_col + 4).value) == datetime.datetime:  # 判断为时间类型才进入循环
+        for col_num in range(1, worksheet.max_row):
+            if type(worksheet.cell(col_num, start_col + 4).value) == datetime.datetime:  # 判断为时间类型才进入循环
                 if wtm_type == '故障':
-                    if worksheet.cell(row_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == wtms_pre[index][
+                    if worksheet.cell(col_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == wtms_pre[index][
                         'stop_time'] \
-                            and worksheet.cell(row_num, start_col + 5).value.strftime('%Y-%m-%d %H:%M') == \
+                            and worksheet.cell(col_num, start_col + 5).value.strftime('%Y-%m-%d %H:%M') == \
                             wtms_pre[index][
                                 'start_time']:
-                        worksheet.cell(row_num, start_col,
+                        worksheet.cell(col_num, start_col,
                                        'A' + str(wtm['wt_id']) + ' ' + str(
                                            WT.query.filter_by(id=wtm['wt_id']).first().dcode))
-                        worksheet.cell(row_num, start_col + 1, data['new']['error_code'])
-                        worksheet.cell(row_num, start_col + 2, data['new']['task'])
-                        worksheet.cell(row_num, start_col + 4, stop_time)
-                        worksheet.cell(row_num, start_col + 5, start_time)
-                        worksheet.cell(row_num, start_col + 6, realRound((start_time - stop_time).seconds / 3600, 2))
-                        worksheet.cell(row_num, start_col + 7, wtm['lost_power'])
-                        # worksheet.cell(row_num, start_col+2, gzp.error_code)
+                        worksheet.cell(col_num, start_col + 1,
+                                       data['new']['error_code'])
+                        worksheet.cell(col_num, start_col +
+                                       2, data['new']['task'])
+                        worksheet.cell(col_num, start_col + 4, stop_time)
+                        worksheet.cell(col_num, start_col + 5, start_time)
+                        worksheet.cell(
+                            col_num, start_col + 6, realRound((start_time - stop_time).seconds / 3600, 2))
+                        worksheet.cell(col_num, start_col +
+                                       7, wtm['lost_power'])
+                        # worksheet.cell(col_num, start_col+2, gzp.error_code)
                         response.status_code = 200
                         break
                 else:
-                    if worksheet.cell(row_num, start_col + 3).value.strftime('%Y-%m-%d %H:%M') == wtms_pre[index][
+                    if worksheet.cell(col_num, start_col + 3).value.strftime('%Y-%m-%d %H:%M') == wtms_pre[index][
                         'stop_time'] \
-                            and worksheet.cell(row_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == \
+                            and worksheet.cell(col_num, start_col + 4).value.strftime('%Y-%m-%d %H:%M') == \
                             wtms_pre[index][
                                 'start_time']:
-                        worksheet.cell(row_num, start_col, 'A' + str(wtm['wt_id']) + ' ' + str(
+                        worksheet.cell(col_num, start_col, 'A' + str(wtm['wt_id']) + ' ' + str(
                             WT.query.filter_by(id=wtm['wt_id']).first().dcode))
-                        worksheet.cell(row_num, start_col + 1, '其他')
-                        worksheet.cell(row_num, start_col + 2, data['new']['task'])
-                        worksheet.cell(row_num, start_col + 3, stop_time)
-                        worksheet.cell(row_num, start_col + 4, start_time)
-                        worksheet.cell(row_num, start_col + 5, realRound((start_time - stop_time).seconds / 3600, 2))
-                        worksheet.cell(row_num, start_col + 6, wtm['lost_power'])
+                        worksheet.cell(col_num, start_col + 1, '其他')
+                        worksheet.cell(col_num, start_col +
+                                       2, data['new']['task'])
+                        worksheet.cell(col_num, start_col + 3, stop_time)
+                        worksheet.cell(col_num, start_col + 4, start_time)
+                        worksheet.cell(
+                            col_num, start_col + 5, realRound((start_time - stop_time).seconds / 3600, 2))
+                        worksheet.cell(col_num, start_col +
+                                       6, wtm['lost_power'])
                         response.status_code = 200
                         break
     if response.status_code == 200:
@@ -451,8 +478,10 @@ def change_cdf():
 
 @bp.route('/wtmsyn', methods=['GET'])
 def gzp_syn():
-    whtj = pd.read_excel(EXCEL_PATH, sheet_name='风机维护统计', usecols=range(16), header=None).fillna('')
-    gztj = pd.read_excel(EXCEL_PATH, sheet_name='风机故障统计', usecols=range(20), header=None).fillna('')
+    whtj = pd.read_excel(EXCEL_PATH, sheet_name='风机维护统计',
+                         usecols=range(index+2), header=None).fillna('')
+    gztj = pd.read_excel(EXCEL_PATH, sheet_name='风机故障统计',
+                         usecols=range(20), header=None).fillna('')
     # 维护
     for x in range(len(whtj)):
         if re.findall(r'^(A)(\d+)(\s*)(\d{5})$', whtj.loc[x].values[0]):
@@ -462,12 +491,14 @@ def gzp_syn():
                                               WTMaintain.start_time == whtj.loc[x].values[4]).first()
             else:
                 wtm = WTMaintain()
-            wtm.wt_id = int(re.match(r'^(A)(\d+)(\s*)(\d{5})$', whtj.loc[3].values[0]).group(2))
+            wtm.wt_id = int(
+                re.match(r'^(A)(\d+)(\s*)(\d{5})$', whtj.loc[3].values[0]).group(2))
             wtm.type = whtj.loc[x].values[1]
             wtm.task = whtj.loc[x].values[2]
             wtm.stop_time = whtj.loc[x].values[3]
             wtm.start_time = whtj.loc[x].values[4]
-            wtm.time = realRound((wtm.start_time - wtm.stop_time).seconds / 3600, 2)
+            wtm.time = realRound(
+                (wtm.start_time - wtm.stop_time).seconds / 3600, 2)
             wtm.lost_power = realRound(float(whtj.loc[x].values[6]), 4)
             db.session.add(wtm)
             db.session.commit()
@@ -478,12 +509,14 @@ def gzp_syn():
                                               WTMaintain.start_time == whtj.loc[x].values[12]).first()
             else:
                 wtm = WTMaintain()
-            wtm.wt_id = int(re.match(r'^(A)(\d+)(\s*)(\d{5})$', whtj.loc[x].values[8]).group(2))
+            wtm.wt_id = int(
+                re.match(r'^(A)(\d+)(\s*)(\d{5})$', whtj.loc[x].values[8]).group(2))
             wtm.type = whtj.loc[x].values[9]
             wtm.task = whtj.loc[x].values[10]
             wtm.stop_time = whtj.loc[x].values[11]
             wtm.start_time = whtj.loc[x].values[12]
-            wtm.time = realRound((wtm.start_time - wtm.stop_time).seconds / 3600, 2)
+            wtm.time = realRound(
+                (wtm.start_time - wtm.stop_time).seconds / 3600, 2)
             wtm.lost_power = realRound(float(whtj.loc[x].values[13]), 4)
             db.session.add(wtm)
             db.session.commit()
@@ -496,31 +529,35 @@ def gzp_syn():
                                               WTMaintain.start_time == gztj.loc[x].values[5]).first()
             else:
                 wtm = WTMaintain()
-            wtm.wt_id = int(re.match(r'^(A)(\d+)(\s*)(\d{5})$', gztj.loc[x].values[0]).group(2))
+            wtm.wt_id = int(
+                re.match(r'^(A)(\d+)(\s*)(\d{5})$', gztj.loc[x].values[0]).group(2))
             wtm.error_code = gztj.loc[x].values[1]
             wtm.error_content = gztj.loc[x].values[2]
             wtm.type = gztj.loc[x].values[3]
             wtm.stop_time = gztj.loc[x].values[4]
             wtm.start_time = gztj.loc[x].values[5]
-            wtm.time = realRound((wtm.start_time - wtm.stop_time).seconds / 3600, 2)
+            wtm.time = realRound(
+                (wtm.start_time - wtm.stop_time).seconds / 3600, 2)
             wtm.lost_power = realRound(float(gztj.loc[x].values[7]), 4)
             wtm.error_approach = gztj.loc[x].values[8]
             db.session.add(wtm)
             db.session.commit()
         if re.findall(r'^(A)(\d+)(\s*)(\d{5})$', gztj.loc[x].values[10]):
             if WTMaintain.query.filter(WTMaintain.stop_time == gztj.loc[x].values[14],
-                                       WTMaintain.start_time == gztj.loc[x].values[15]).first():
+                                       WTMaintain.start_time == gztj.loc[x].values[index+1]).first():
                 wtm = WTMaintain.query.filter(WTMaintain.stop_time == gztj.loc[x].values[14],
-                                              WTMaintain.start_time == gztj.loc[x].values[15]).first()
+                                              WTMaintain.start_time == gztj.loc[x].values[index+1]).first()
             else:
                 wtm = WTMaintain()
-            wtm.wt_id = int(re.match(r'^(A)(\d+)(\s*)(\d{5})$', gztj.loc[x].values[10]).group(2))
+            wtm.wt_id = int(
+                re.match(r'^(A)(\d+)(\s*)(\d{5})$', gztj.loc[x].values[10]).group(2))
             wtm.error_code = gztj.loc[x].values[11]
             wtm.error_content = gztj.loc[x].values[12]
             wtm.type = gztj.loc[x].values[13]
             wtm.stop_time = gztj.loc[x].values[14]
-            wtm.start_time = gztj.loc[x].values[15]
-            wtm.time = realRound((wtm.start_time - wtm.stop_time).seconds / 3600, 2)
+            wtm.start_time = gztj.loc[x].values[index+1]
+            wtm.time = realRound(
+                (wtm.start_time - wtm.stop_time).seconds / 3600, 2)
             wtm.lost_power = realRound(float(gztj.loc[x].values[17]), 4)
             wtm.error_approach = gztj.loc[x].values[18]
             db.session.add(wtm)
@@ -530,47 +567,77 @@ def gzp_syn():
 
 @bp.route('/gzpsyn', methods=['GET'])
 def syn_gzp():
-    path = r'C:\Users\Administrator\Desktop\5OA系统风机工作票'
+    data = request.get_json() or {}
+    path = DESK_PATH+r'5OA系统风机工作票'
     for year_folder in os.listdir(path):
-        if re.match(r'\d+年', year_folder):
+        if re.match('\d+年$', year_folder):
             for month_folder in os.listdir(path + '\\' + year_folder):
-                if not re.match('\.\S+', month_folder):
+                if re.match('\d+月$', month_folder):
                     for gzp in os.listdir(path + '\\' + year_folder + '\\' + month_folder):
-                        if re.match(r'风机检修工作票', gzp):
-                            data_gzp = pd.read_excel(path + '\\' + year_folder + '\\' + month_folder + '\\' + gzp)  # 读取
+                        if re.match(r'^(风机检修工作票)\S+(\.xls)$', gzp):
+                            data_gzp = pd.read_excel(
+                                path + '\\' + year_folder + '\\' + month_folder + '\\' + gzp)  # 读取
                             if not Gzp.query.filter_by(gzp_id=data_gzp.loc[1].values[13]).first():
                                 gzp = Gzp()
                             else:
-                                gzp = Gzp.query.filter_by(gzp_id=data_gzp.loc[1].values[13]).first()
-                            # 以下开始对各项数据进行读取
+                                gzp = Gzp.query.filter_by(
+                                    gzp_id=data_gzp.loc[1].values[13]).first()
+                            # 公司
                             gzp.firm = data_gzp.loc[1].values[1]
-                            gzp.gzp_id = data_gzp.loc[1].values[13]
-                            gzp.manage_person = get_user(data_gzp.loc[3].values[4])
-                            members = re.split("\W+", data_gzp.loc[6].values[0])
-                            members_temp = []
-                            for member in members:
-                                members_temp.append(get_user(member))
-                            gzp.members = members_temp
-                            if not pd.isnull(data_gzp.loc[9].values[5]):
-                                gzp.error_code = re.match(r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(1)
-                                if re.match(r'^(SC\d+_\d+_\d+)(\w+)?$', data_gzp.loc[9].values[5]).group(2):
-                                    gzp.error_content = re.match(r'^(SC\d+_\d+_\d+)(\w+)?$',
-                                                                 data_gzp.loc[9].values[5]).group(2)
-                                else:
-                                    gzp.error_content = re.match(r'(处理)?(\w+)', data_gzp.loc[11].values[10]).group(2)
-
-                            gzp_wts_id = list(
-                                map(lambda x: re.match(r'^(A)(\d+)$', x).group(2),
-                                    re.findall(re.compile(r'A\d+'), data_gzp.loc[11].values[0])))
-                            gzp.wts = list(map(lambda x: WT.query.filter_by(id=int(x)).first(), gzp_wts_id))  # wt放在最后
-                            gzp.postion = data_gzp.loc[11].values[5]
-                            gzp.task = data_gzp.loc[11].values[10]
-                            gzp.pstart_time = datetime.datetime(data_gzp.loc[15].values[2], data_gzp.loc[15].values[4],
-                                                                data_gzp.loc[15].values[6], data_gzp.loc[15].values[8],
-                                                                data_gzp.loc[15].values[10])
-                            gzp.pstop_time = datetime.datetime(data_gzp.loc[16].values[2], data_gzp.loc[16].values[4],
-                                                               data_gzp.loc[16].values[6], data_gzp.loc[16].values[8],
-                                                               data_gzp.loc[16].values[10])
+                            # 以下开始对各项数据进行读取
+                            for index,row in data_gzp.fillna('').iterrows():
+                                for col_num in range(0,19):
+                                    if row.values[col_num] != '' and isinstance(row.values[col_num],str):
+                                        #匹配编号
+                                        if re.match(r'\S{4}-\S{2}-\S{2}-\d{9}',row.values[col_num]):
+                                            gzp.gzp_id = re.match(r'\S{4}-\S{2}-\S{2}-\d{9}',row.values[col_num]).group()
+                                        #匹配工作负责人
+                                        if row.values[col_num]=='1、工作负责人(监护人)':
+                                            gzp.manage_person = get_user(row.values[col_num+4])
+                                        #匹配工作班成员
+                                        if row.values[col_num]=='2、工作班成员（不包括工作负责人）':
+                                            members = re.split(
+                                                        "\W+", data_gzp.loc[index+1].values[0].strip())
+                                            members_temp = []
+                                            for member in members:
+                                                members_temp.append(get_user(member))
+                                            gzp.members = members_temp
+                                        #匹配故障
+                                        if row.values[col_num]=='3、工作任务':
+                                            if isinstance( data_gzp.loc[index+1].values[5],str):
+                                                if re.match(r'(SC\d+_\d+_\d+)\\?(\w+)?', data_gzp.loc[index+1].values[5]):
+                                                    gzp.error_code = re.match(
+                                                        r'(SC\d+_\d+_\d+)\\?(\w+)?', data_gzp.loc[index+1].values[5]).group(1)
+                                                    if re.match(r'(SC\d+_\d+_\d+)\\?(\w+)?',  data_gzp.loc[index+1].values[5]).group(2):
+                                                        gzp.error_content = re.match(
+                                                            r'(SC\d+_\d+_\d+)\\?(\w+)?', data_gzp.loc[index+1].values[5]).group(2)
+                                                    else:
+                                                        gzp.error_content = re.match(
+                                                            r'(处理)?(\w+)', data_gzp.loc[index+3].values[10]).group(2)
+                                            #匹配风机
+                                            gzp_wts_id = list(
+                                                map(lambda x: re.match(r'^(A)(\d+)$', x).group(2),
+                                                    re.findall(re.compile(r'A\d+'),data_gzp.loc[index+3].values[0])))
+                                            gzp.wts = list(map(lambda x: WT.query.filter_by(
+                                                id=int(x)).first(), gzp_wts_id))  # wt放在最后
+                                            gzp.postion = data_gzp.loc[index+3].values[5]
+                                            gzp.task = data_gzp.loc[index+3].values[10]
+                                        #匹配时间
+                                        if row.values[col_num]=='5、计划工作时间':
+                                            try:
+                                                gzp.pstart_time = datetime.datetime(data_gzp.loc[index+1].values[2], data_gzp.loc[index+1].values[4],
+                                                                                    data_gzp.loc[index+1].values[6], data_gzp.loc[index+1].values[8],
+                                                                                    data_gzp.loc[index+1].values[10])
+                                                if data_gzp.loc[index+2].values[8] != 24:
+                                                    gzp.pstop_time = datetime.datetime(data_gzp.loc[index+2].values[2], data_gzp.loc[index+2].values[4],
+                                                                                data_gzp.loc[index+2].values[6], data_gzp.loc[index+2].values[8],
+                                                                                data_gzp.loc[index+2].values[10])
+                                                else:
+                                                    gzp.pstop_time = datetime.datetime(data_gzp.loc[index+2].values[2], data_gzp.loc[index+2].values[4],
+                                                                                data_gzp.loc[index+2].values[6], 0,
+                                                                                data_gzp.loc[index+2].values[10]) +datetime.timedelta(days=1)
+                                            except ValueError:
+                                                print(gzp.gzp_id)
                             # start_flag = 20
                             # while True:  # flag 指向签发行
                             #     if data_gzp.loc[start_flag].values[0] == '8、签发人签名':
@@ -581,7 +648,7 @@ def syn_gzp():
                             # sign_time_month = data_gzp.loc[start_flag].values[9]
                             # sign_time_day = data_gzp.loc[start_flag].values[11]
                             # sign_time_hour = data_gzp.loc[start_flag].values[13]
-                            # sign_time_minutes = data_gzp.loc[start_flag].values[15]
+                            # sign_time_minutes = data_gzp.loc[start_flag].values[index+1]
                             # gzp.sign_time = datetime.datetime(sign_time_year, sign_time_month, sign_time_day,
                             #                                   sign_time_hour, sign_time_minutes)
                             db.session.add(gzp)
@@ -589,7 +656,7 @@ def syn_gzp():
     return jsonify('ok')
 
 
-@bp.route('/gzpbyusers2excel', methods=['GET'])
+@bp.route('/stat2excel', methods=['GET'])
 def gzp_by_users():
     wb = openpyxl.Workbook()
     users = User.query.all()
@@ -606,36 +673,34 @@ def gzp_by_users():
         if len(user.gzps.all()):
             wb.create_sheet(title=user.name)
             ws = wb[user.name]
-            ws.column_dimensions['A'].width =25
-            ws.cell(1,1).value = '票号'
-            ws.column_dimensions['B'].width = 15
-            ws.cell(1,2).value = '时间'
+            ws.column_dimensions['A'].width = 25
+            ws.cell(1, 1).value = '票号'
+            ws.column_dimensions['B'].width = 20
+            ws.cell(1, 2).value = '时间'
             ws.column_dimensions['C'].width = 20
-            ws.cell(1,3).value = '风机号'
+            ws.cell(1, 3).value = '风机号'
             ws.column_dimensions['D'].width = 40
-            ws.cell(1,4).value = '工作内容'
+            ws.cell(1, 4).value = '工作内容'
             ws.column_dimensions['D'].width = 20
-            ws.cell(1,5).value = '工作负责人'
-            row_num = 2
+            ws.cell(1, 5).value = '工作负责人'
+            col_num = 2
             for gzp in user.gzps.all()+Gzp.query.filter(Gzp.manage_person == user).all():
-                ws.cell(row_num, 1).value = gzp.gzp_id
-                ws.cell(row_num, 2).value = gzp.pstart_time.date()
+                ws.cell(col_num, 1).value = gzp.gzp_id
+                ws.cell(col_num, 2).value = gzp.pstart_time.date()
                 wts = ''
                 for wt in gzp.wts:
                     wts = wts+'A'+str(wt.id)+'、'
                 wts = wts[:-1]
-                ws.cell(row_num, 3).value = wts
-                ws.cell(row_num, 4).value = gzp.task
-                ws.cell(row_num, 5).value = gzp.manage_person.name
-                for irow,row in enumerate(ws.rows, start=1):
+                ws.cell(col_num, 3).value = wts
+                ws.cell(col_num, 4).value = gzp.task
+                ws.cell(col_num, 5).value = gzp.manage_person.name
+                for irow, row in enumerate(ws.rows, start=1):
                     for cell in row:
                         cell.alignment = alignment
                         if irow == 1:
                             cell.font = ft
-                row_num = row_num + 1
+                col_num = col_num + 1
     ws = wb['Sheet']
     wb.remove(ws)
-    wb.save(r'C:\Users\Kyle\Desktop\工作票工作成员统计.xlsx')
+    wb.save(DESK_PATH+r'工作票工作成员统计.xlsx')
     return jsonify({})
-
-
