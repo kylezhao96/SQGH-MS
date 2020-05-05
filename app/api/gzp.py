@@ -536,7 +536,7 @@ def syn_gzp():
             for month_folder in os.listdir(path + '\\' + year_folder):
                 if not re.match('\.\S+', month_folder):
                     for gzp in os.listdir(path + '\\' + year_folder + '\\' + month_folder):
-                        if re.match(r'风机检修工作票', gzp):
+                        if re.match(r'^(风机检修工作票)\S+(\.xls)$', gzp):
                             data_gzp = pd.read_excel(path + '\\' + year_folder + '\\' + month_folder + '\\' + gzp)  # 读取
                             if not Gzp.query.filter_by(gzp_id=data_gzp.loc[1].values[13]).first():
                                 gzp = Gzp()
