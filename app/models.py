@@ -304,7 +304,7 @@ class Gzp(PaginatedAPIMixin, db.Model):
     error_code = db.Column(db.String(100))  # 故障代码
     error_content = db.Column(db.String(100))  # 故障内容
     # members = db.relationship("User", secondary=member_gzp, backref="exec_gzps", lazy="dynamic")  # 工作班成员
-    task = db.Column(db.String(100))  # 任务
+    task = db.Column(db.String(500))  # 任务
     postion = db.Column(db.String(100), server_default='整机')  # 工作位置
     sign_time = db.Column(db.DateTime)  # 签发时间
     allow1_time = db.Column(db.DateTime)  # 值班许可时间

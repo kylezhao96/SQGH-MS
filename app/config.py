@@ -12,7 +12,7 @@ class Config(object):
     DIALECT = 'mysql'
     DRIVER = 'pymysql'
     USERNAME = 'root'
-    PASSWORD = '960618'
+    PASSWORD = 'Sqghwh1234@'
     HOST = '127.0.0.1'
     PORT = '3306'
     DATABASE = 'sqghdb'
