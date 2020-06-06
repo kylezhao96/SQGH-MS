@@ -1,3 +1,4 @@
+import calendar
 import datetime
 import json
 from decimal import Decimal
@@ -13,8 +14,8 @@ from sqlalchemy import or_
 from app import db
 from app.api import bp
 from app.models import CalDailyForm, WTMaintain, PowerCut
-from app.tool.tool import realRound, DecimalEncoder, OMS_PATH, get_stop_time, get_lost_power, TY_PATH, get_num,EXCEL_PATH
-
+from app.tool.tool import realRound, DecimalEncoder, OMS_PATH, get_stop_time, get_lost_power, TY_PATH, get_num, \
+    EXCEL_PATH
 
 
 def save_excel(path):
@@ -732,3 +733,24 @@ def get_oms():
     return jsonify([
         res
     ])
+
+
+@bp.route('/getscdata', methods=['POST'])
+def getScData():
+    data = request.get_json() or {}
+    print(data)
+    year = data['year']
+    month = data['month']
+    start_day = datetime.date(year, month, 1)
+    month_range = calendar.monthrange(year, month)[1]
+    end_day = datetime.date(year, month, month_range)
+    cals = CalDailyForm.query.filter(CalDailyForm.date >= start_day, CalDailyForm.date <= end_day).all()
+    sum_gp = 0
+    sum_ws = 0
+    for cal in cals:
+        sum_gp = sum_gp + cal.dgp
+        sum_ws = sum_ws + cal.davgs
+    sum_gp = realRound(sum_gp/10000, 4)
+    avg_ws = realRound(sum_ws / month_range, 2)
+    print(sum_gp, avg_ws)
+    return jsonify({})

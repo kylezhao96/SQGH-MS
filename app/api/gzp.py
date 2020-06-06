@@ -7,7 +7,7 @@ import numpy as np
 import openpyxl
 
 import pandas as pd
-from flask import jsonify, request
+from flask import jsonify, request, make_response, send_file
 from sqlalchemy.sql import and_, or_
 
 from app import db
@@ -251,6 +251,7 @@ def post_gzp():
         id=int(x)).first(), gzp_wts_id))  # wt放在最后
     gzp.postion = data_gzp.loc[11].values[5]
     gzp.task = data_gzp.loc[11].values[10]
+    index = 14
     gzp.pstart_time = datetime.datetime(data_gzp.loc[index + 1].values[2], data_gzp.loc[index + 1].values[4],
                                         data_gzp.loc[index + 1].values[6], data_gzp.loc[index + 1].values[8],
                                         data_gzp.loc[index + 1].values[10])
@@ -494,7 +495,7 @@ def wtm_syn():
 
             gzp = Gzp.query.filter(
                 and_(Gzp.pstart_time < stop_time, Gzp.pstart_time > zero_time,
-                     Gzp.wts.any(id = wt_id))).first()  # 这里可能会生成bug
+                     Gzp.wts.any(id=wt_id))).first()  # 这里可能会生成bug
             wtm = WTMaintain()
             is_in = False
             for item in gzp.wtms:
@@ -552,7 +553,7 @@ def wtm_syn():
             start_time = gztj.loc[x].values[5]
             if stop_time.hour < 18:
                 zero_time = stop_time - datetime.timedelta(hours=stop_time.hour, minutes=stop_time.minute,
-                                                       seconds=stop_time.second) + datetime.timedelta(days=1)
+                                                           seconds=stop_time.second) + datetime.timedelta(days=1)
             else:
                 zero_time = stop_time - datetime.timedelta(hours=stop_time.hour, minutes=stop_time.minute,
                                                            seconds=stop_time.second) + datetime.timedelta(days=2)
@@ -586,8 +587,8 @@ def wtm_syn():
                 db.session.add(gzp)
                 db.session.commit()
             except(AttributeError):
-                print('工作票不存在，风机号：A'+str(wt_id)+'，停机时间'+str(stop_time))
-                res.append('风机号：A'+str(wt_id)+'，停机时间'+str(stop_time))
+                print('工作票不存在，风机号：A' + str(wt_id) + '，停机时间' + str(stop_time))
+                res.append('风机号：A' + str(wt_id) + '，停机时间' + str(stop_time))
         if re.findall(r'^(A)(\d+)(\s*)(\d{5})$', gztj.loc[x].values[10]):
             stop_time = gztj.loc[x].values[14]
             start_time = gztj.loc[x].values[15]
@@ -605,7 +606,7 @@ def wtm_syn():
                 wtm = WTMaintain()
                 is_in = False
                 for item in gzp.wtms:
-                    if item == WTMaintain.query.filter(WTMaintain.stop_time ==stop_time,
+                    if item == WTMaintain.query.filter(WTMaintain.stop_time == stop_time,
                                                        WTMaintain.start_time == start_time).first():
                         wtm = item
                         is_in = True  # 标定数据库中已存在
@@ -627,14 +628,14 @@ def wtm_syn():
                 db.session.add(gzp)
                 db.session.commit()
             except(AttributeError):
-                print('工作票不存在，风机号：A'+str(wt_id)+'，停机时间'+str(stop_time))
+                print('工作票不存在，风机号：A' + str(wt_id) + '，停机时间' + str(stop_time))
                 res.append('风机号：A' + str(wt_id) + '，停机时间' + str(stop_time))
     return jsonify(res)
 
 
 # @bp.route('/gzpsyn', methods=['GET'])
 def gzp_syn():
-    data = request.get_json() or {}
+    # data = request.get_json() or {}
     res = []
     path = DESK_PATH + r'5OA系统风机工作票'
     for year_folder in os.listdir(path):
@@ -792,3 +793,85 @@ def gzp_by_users():
     wb.remove(ws)
     wb.save(DESK_PATH + r'工作票工作成员统计.xlsx')
     return jsonify({})
+
+
+@bp.route('/gzp_by_days', methods=['POST'])
+def gzp_by_days():
+    data = request.get_json() or {}
+    print(data)
+    startTime = datetime.datetime.strptime(data['startTime'], '%Y-%m-%d')
+    endTime = datetime.datetime.strptime(data['endTime'], '%Y-%m-%d')
+    users_id = data['users']
+    users= User.query.filter(User.id.in_(users_id)).all()
+    gzps = Gzp.query.filter(Gzp.pstart_time >= startTime, Gzp.pstop_time <= endTime).all()
+    res = []
+    for gzp in gzps:
+        if gzp.manage_person_id in users_id or (set(gzp.members) & set(users)):
+            res.append({
+                'gzp_id': gzp.gzp_id,
+                'wt': wtsToString(gzp.wts),
+                'date': gzp.pstart_time.date().strftime('%Y-%m-%d'),
+                'task': gzp.task,
+                'manage_person': gzp.manage_person.name,
+                'member': memberToString(gzp.members.all())
+            })
+    return jsonify(res)
+
+
+def wtsToString(wts):
+    wtString = ''
+    for wt in wts:
+        wtString = wtString + 'A' + str(wt.id) + '，'
+    return wtString[:-1]
+
+
+def memberToString(members):
+    memberString = ''
+    for member in members:
+        memberString = memberString + member.name + '，'
+    return memberString[:-1]
+
+
+@bp.route('/getGzpAnalysisExcel',methods=['POST'])
+def getGzpAnalysisExcel():
+    gzps= request.get_json() or {}
+    wb = openpyxl.Workbook()
+    ft = openpyxl.styles.Font(bold=True)
+    alignment = openpyxl.styles.Alignment(horizontal='center',
+                                          # 水平'center', 'centerContinuous', 'justify', 'fill', 'general', 'distributed', 'left', 'right'
+                                          vertical='center',  # 垂直'distributed', 'bottom', 'top', 'center', 'justify'
+                                          text_rotation=0,  # 旋转角度0~180
+                                          wrap_text=True,  # 文字换行
+                                          shrink_to_fit=False,  # 自适应宽度，改变文字大小,上一项false
+                                          indent=0)
+    ws = wb.active
+    ws.column_dimensions['A'].width = 25
+    ws.cell(1, 1).value = '票号'
+    ws.column_dimensions['B'].width = 20
+    ws.cell(1, 2).value = '时间'
+    ws.column_dimensions['C'].width = 20
+    ws.cell(1, 3).value = '风机号'
+    ws.column_dimensions['D'].width = 40
+    ws.cell(1, 4).value = '工作内容'
+    ws.column_dimensions['E'].width = 20
+    ws.cell(1, 5).value = '工作负责人'
+    ws.column_dimensions['F'].width = 40
+    ws.cell(1, 6).value = '工作班成员'
+    col_num = 2
+    for gzp in gzps:
+        ws.cell(col_num, 1).value = gzp['gzp_id']
+        ws.cell(col_num, 2).value = gzp['date']
+        ws.cell(col_num, 3).value = gzp['wt']
+        ws.cell(col_num, 4).value = gzp['task']
+        ws.cell(col_num, 5).value = gzp['manage_person']
+        ws.cell(col_num, 6).value = gzp['member']
+        for irow, row in enumerate(ws.rows, start=1):
+            for cell in row:
+                cell.alignment = alignment
+                if irow == 1:
+                    cell.font = ft
+        col_num = col_num + 1
+    wb.save(r'temp\gzpAnalysis.xlsx')
+    response = make_response(send_file('D:\\MyRepositories\\sqgh-ms\\temp\\gzpAnalysis.xlsx'))
+    response.headers["Content-Disposition"] = "attachment; filename= gzpAnalysis.xlsx;"
+    return response

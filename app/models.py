@@ -53,11 +53,11 @@ class User(PaginatedAPIMixin, db.Model):
     name = db.Column(db.String(20), unique=True, nullable=False)
     oa_account = db.Column(db.String(20), unique=True)
     oa_password = db.Column(db.String(100))
-
+    company = db.Column(db.String(100),default='其他')
     # 关联属性，多对多的情况，可以写在任意一个模型类中
-    gzps = db.relationship('Gzp', secondary=member_gzp,
-                                     backref='relate_gzp',
-                                     lazy='dynamic')
+    # gzps = db.relationship('Gzp', secondary=member_gzp,
+    #                        backref='relate_gzp',
+    #                        lazy='dynamic')
 
     # signed_gzp_id = db.Column(db.Integer, db.ForeignKey("gzp.id"))  # 签发的工作票 外键
     # signed_gzp = db.relationship('Gzp', foreign_keys=[signed_gzp_id])  # 签发的工作票
@@ -264,7 +264,7 @@ class CalDailyForm(PaginatedAPIMixin, db.Model):
         data = {}
         for name in dir(self):
             value = getattr(self, name)
-            if not name.startswith('_') and  (type(value)==int or type(value)==float):
+            if not name.startswith('_') and (type(value) == int or type(value) == float):
                 data[name] = value
         return data
 
@@ -296,7 +296,8 @@ class Gzp(PaginatedAPIMixin, db.Model):
     __tablename__ = 'gzp'
     id = db.Column(db.Integer, primary_key=True)
     # 定义维护单与工作票 一对多关系 外键
-    wtms = db.relationship("WTMaintain", backref="gzp", lazy='dynamic', cascade='all, delete-orphan', passive_deletes = True)
+    wtms = db.relationship("WTMaintain", backref="gzp", lazy='dynamic', cascade='all, delete-orphan',
+                           passive_deletes=True)
     gzp_id = db.Column(db.String(50), unique=True)  # 工作票票号
     firm = db.Column(db.String(100))  # 单位
     pstart_time = db.Column(db.DateTime)  # 计划开始时间
@@ -324,11 +325,12 @@ class Gzp(PaginatedAPIMixin, db.Model):
     allow2_person_id = db.Column(db.Integer, db.ForeignKey("user.id"))  # 现场许可的工作票
     allow2_person = db.relationship('User', foreign_keys=[allow2_person_id])  # 现场许可的工作票
 
-    members = db.relationship("User", secondary=member_gzp, backref=db.backref('exec_gzp', lazy='dynamic'),
+    members = db.relationship("User", secondary=member_gzp, backref=db.backref('gzps', lazy='joined'),
                               lazy="dynamic")  # 工作班成员
-    wts = db.relationship("WT", secondary=wt_gzp, backref=db.backref('exec_gzp', lazy='dynamic'),
+    wts = db.relationship("WT", secondary=wt_gzp, backref=db.backref('gzps', lazy='joined'),
                           lazy="dynamic")  # 风机号
     is_end = db.Column(db.Boolean, default=False)  # 是否终结
+
     @staticmethod
     def to_col_dict(query):
         data = {
@@ -343,6 +345,6 @@ class PowerCut(PaginatedAPIMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     start_time = db.Column(db.DateTime)  # 限电开始时间
     stop_time = db.Column(db.DateTime)  # 限电结束时间
-    time = db.Column(db.Float) #限电时间
+    time = db.Column(db.Float)  # 限电时间
     lost_power1 = db.Column(db.Float)  # 1期损失电量
     lost_power2 = db.Column(db.Float)  # 2期损失电量
