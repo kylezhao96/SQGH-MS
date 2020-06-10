@@ -15,9 +15,9 @@ class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess'
     DIALECT = 'mysql'
     DRIVER = 'pymysql'
-    USERNAME = 'root'
-    PASSWORD = 'Sqghwh1234@'
-    HOST = '127.0.0.1'
+    USERNAME = 'kylezhao'
+    PASSWORD = '123456'
+    HOST = '47.93.199.183'
     PORT = '3306'
     DATABASE = 'sqghdb'
 
